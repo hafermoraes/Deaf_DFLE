@@ -1,0 +1,14 @@
+FROM rocker/tidyverse:4.2.1
+
+# update, upgrade system and install additional packages
+# RUN apt update -y && apt install wget unzip build-essential -y --no-install-recommends
+
+RUN rm -rf /tmp/paa_pns/ && mkdir /tmp/paa_pns
+
+WORKDIR /etl_paa/
+
+COPY . /etl_paa/
+
+# ETL
+RUN make extract && make transform
+
