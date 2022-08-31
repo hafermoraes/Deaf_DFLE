@@ -5,7 +5,7 @@
 
   The work was done in a GNU/Linux machine but due to =docker= it should be possible to reproduce the results in other OS.
   
-  #+begin_src shell :export both :results verbatim
+  #+begin_src shell :exports both :results verbatim
   cat /etc/os-release
   #+end_src
 
