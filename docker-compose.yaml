@@ -33,7 +33,7 @@ services:
     working_dir: /pg_data/
     volumes:
       - pg_data:/pg_data/
-      - ./ETL/pns2019_create_db.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./ETL/paa2022_create_db.sql:/docker-entrypoint-initdb.d/schema.sql
 
   rstudio:
     image: "rocker/tidyverse:4.2.1"

@@ -3,7 +3,7 @@
     "1": {
       "Group": "paa_paper",
       "Host": "db",
-      "Name": "pns",
+      "Name": "paa",
       "Username": "postgres",
       "Password": "12345",  
       "Port": 5432,

@@ -1,46 +1,21 @@
-select 
-        -- survey design variables
+-- National Health Survey (PNS/IBGE)
+-- Questionaire (accessed on September, 7th 2022): 
+--   https://www.pns.icict.fiocruz.br/wp-content/uploads/2021/02/Questionario-PNS-2019.pdf
+
+ select -- survey design variables
         upa_pns, v0024, 
-        v0029, v00292, v00293,
-        v0028, v00282, v00283,
+        v0028, v00281, v00282, v00283,    -- chosen respondent answers in the name of all persons of household
+        -- v0029, v00291, v00292, v00293, -- answers from chosen respondent only
+        -- v0030, v00301, v00302, v00303, -- answers from anthropometric questionaire
         -- variables for analyses
-        case 
-          when j001 = '1' then 'very good'
-          when j001 = '2' then 'good'
-          when j001 = '3' then 'regular'
-          when j001 = '4' then 'bad'
-          when j001 = '5' then 'very bad'
-                else null
-        end as health_perception,
-        case
-          when c006 = '1' then 'male'
-          when c006 = '2' then 'female'
-          else null
-        end as gender, 
-        cast( c008 as integer) as age, 
-        case
-          when q092 = '1' then 'yes'
-          when q092 = '2' then 'no'
-          else null
-        end as diagnosed_depression, 
-        case
-          when q11006 = '1' then 'yes'
-          when q11006 = '2' then 'no'
-          else null
-        end as diagnosed_anxiety, 
-        case
-          when g057 = '1' then 'none'
-          when g057 = '2' then 'some'
-          when g057 = '3' then 'heavily'
-          when g057 = '4' then 'fully'
-          else null
-        end as hearing_impairment_level, 
-        case
-          when g05801 = '1' then 'yes'
-          when g05801 = '2' then 'no'
-          else null
-        end as brazilian_sign_language_use 
-from ed2019.microdata 
-where v0029 ~ '\d+' -- v0029 not empty
-and v0015 = '01' -- only realized interviews
--- limit 10
+        j001,   -- health_perception (for validation purposes only...)
+        c006,   -- gender
+        c008,   -- age
+        q092,   -- ever diagnosed with depression by a physician
+        q11006, -- ever diagnosed with anxiety by a physician
+        g058,   -- hearing impairment level
+        g057,   -- hearing impairment level even using hearning devices
+        g05801  -- knowdledge of Libras, the brazilian sign language
+   from ed2019.microdata 
+  where v0028 ~ '\d+' -- (weight variable) v0028 not empty
+    and v0015 = '01'  -- only effective and successful interviews

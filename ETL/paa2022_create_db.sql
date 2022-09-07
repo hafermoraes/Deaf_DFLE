@@ -4,15 +4,32 @@
 --drop database if exists pns;
 --        create database pns;
 
--- conecta ao banco ~pns~
-\c pns;
+-- conecta ao banco ~paa~
+\c paa;
 
--- cria schema ~ed2019~ para a edição 2019 da PNS
-          create schema ed2019;
+-- cria schema ~lt~ para a edição 2010 das tábuas abreviadas de mortalidade (IBGE/Censo)
+          create schema censo2010;
+
+-- tábuas abreviadas de mortalidade de 2010 (IBGE/Censo)
+-- drop table if exists censo2010.life_table
+           create table censo2010.lifetables (
+                        age_grp text,
+                        gender text,
+                        year text,
+                        name text,
+                        value text
+                        );
+
+-- importa tábuas abreviadas de vida na tabela ~lt2010~
+-- /pg_data/ existe dentro do docker do postgres!
+copy censo2010.lifetables from '/pg_data/censo2010_lifetables.csv' delimiter '|' csv; -- dados sem cabeçalho
+
+-- cria schema ~pns2019~ para a edição 2019 da PNS
+          create schema pns2019;
 
 -- dicionário de dados (explicação de colunas e respostas)
 -- drop table if exists ed2019.datadict;
-           create table ed2019.datadict (
+           create table pns2019.datadict (
                         var text,
                         enun text,
                         cod text,
@@ -21,11 +38,11 @@
 
 -- importa dicionário de dados brutos na tabela ~datadict~
 -- /pg_data/ existe dentro do docker do postgres!
-copy ed2019.datadict from '/pg_data/pg_pns2019_vars' delimiter '|' csv; -- dados sem cabeçalho
+copy pns2019.datadict from '/pg_data/pg_pns2019_vars' delimiter '|' csv; -- dados sem cabeçalho
 
 -- microdados separados por variavel
 --   drop table if exists ed2019.microdata;
-           create table ed2019.microdata (
+           create table pns2019.microdata (
                         V0001 text,
                         V0024 text,
                         UPA_PNS text,
@@ -1117,5 +1134,4 @@ copy ed2019.datadict from '/pg_data/pg_pns2019_vars' delimiter '|' csv; -- dados
                         );
 
 -- importa microdados brutos na tabela microdata
-copy ed2019.microdata from '/pg_data/pg_pns2019_microdata.csv' delimiter '|' csv; -- microdados sem cabeçalho
-
+copy pns2019.microdata from '/pg_data/pg_pns2019_microdata.csv' delimiter '|' csv; -- microdados sem cabeçalho
