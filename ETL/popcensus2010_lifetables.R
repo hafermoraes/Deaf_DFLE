@@ -39,7 +39,7 @@ lt2010 <- lt2010w %>%
             age_grp == 'Menos de 1 ano' ~ '[0,1)',
             age_grp == '1 a 4 anos' ~ '[1,5)',
             age_grp == '5 a 9 anos' ~ '[5,10)',
-            age_grp == '90 anos e mais' ~ '[90,120)',
+            age_grp == '90 anos e mais' ~ '[90,120]',
             TRUE ~ paste0( '[',
                           str_sub( age_grp, 1,2),
                           ',',
