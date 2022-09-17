@@ -4,7 +4,7 @@
 --  ftp://ftp.ibge.gov.br/Tabuas_Abreviadas_de_Mortalidade/2010/tabelas_xls.zip
 
  select age_grp,   -- 5-year age
-        gender,    -- both, male and female
+        sex,       -- both, male and female
         name,      -- life table functions
         value
    from censo2010.lifetables

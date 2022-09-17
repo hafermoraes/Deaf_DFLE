@@ -4,7 +4,7 @@ library(srvyr)
 library(survey)
 library(RPostgres)
 
-# Connect to database 'pns'
+# Connect to database 'paa'
 conn <- dbConnect(
   RPostgres::Postgres(),
   dbname = Sys.getenv("PG_DB"),
@@ -18,7 +18,7 @@ censo2010_qry <- dbGetQuery( conn, statement = readr::read_file('qry_censo.sql')
 
 censo2010 <- censo2010_qry %>%
   pivot_wider(
-    id_cols = c('age_grp', 'gender')
+    id_cols = c('age_grp', 'sex')
     ,names_from = 'name'
     ,values_from = 'value'
   ) %>%
@@ -29,6 +29,7 @@ censo2010 %>%
 
 ## dbGetQuery(conn, "select * from pns2019.microdata limit 5") %>% View
 ## dbGetQuery(conn, "select * from pns2019.datadict") %>% View
+## dbGetQuery(conn, "select * from censo2010.lifetables") %>% View
 
 pns2019_qry <- dbGetQuery( conn, statement = readr::read_file('qry_pns.sql') )
 pns2019_qry <- pns2019_qry %>%
@@ -64,32 +65,42 @@ pns2019_posterior <- survey::postStratify(
 round( svytable(formula=~j001+c006, design=subset(pns2019_posterior, c008 >=18))/1e3, 0)
 round( svytable(formula=~c006, design=subset(pns2019_posterior, c008 >= 18))/1e3, 0)
 round( sum(svytable(formula=~c006, design=subset(pns2019_posterior, c008 >= 18)))/1e3, 0)
-# Conclusion: overall total and totals by gender are OK, but among health perception the numbers do not match
+# Conclusion: overall total and totals by sex are OK, but among health perception the numbers do not match
 
 #   https://biblioteca.ibge.gov.br/visualizacao/livros/liv101846.pdf, page 43
-round( svytable( formula=~g058 + g05801, design = subset(pns2019_posterior, g058 %in% c('2','3','4'), c008 >= 5 & c008 <= 40)),0)
-# no match...
+round( svytable( formula=~g057 + g05801, design = subset(pns2019_posterior, c008 >= 5 & c008 <= 40)),0) %>%
+  as.data.frame() %>%
+  pivot_wider(id_cols=1, names_from=2, values_from=3) %>%
+  rename( sim=3, nao=4) %>%
+  mutate(pct_sabe_libras = sim/(sim+nao))
+# makes sense but does not match...
 
 paa2022_raw <- svytable(
   formula=~c008 + # age at interview date
     g058 +        # level of hearing impairment
     g057 +        # level of hearing impairment (despite use of hearing devices)
-    c006 +        # gender 
-    g05801 +      # use of LIBRAS, the Brazilian sign language
+    c006 +        # sex 
+    g05801 +      # use of Libras, the Brazilian sign language
     q092 +        # ever diagnosed with depression by a physician
     q11006,       # ever diagnosed with anxiety by a physician
   design = pns2019_posterior,
 )
 
+AGE_BREAKS <- c( 0, 1, seq(from=5,to=90, by=5), 1e3)
+AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
+                ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
+                ,'70-74','75-79','80-84','85-89','90+')
+
 paa2022_pns <- paa2022_raw %>% 
   as.data.frame(stringsAsFactors = FALSE) %>%
   mutate(
     c008 = as.numeric(c008),
-    gender = factor( c006, levels = 1:2, labels = c('male', 'female')),
+    sex = factor( c006, levels = 1:2, labels = c('male', 'female')),
     libras = factor( g05801, levels = 1:2, labels = c('yes', 'no')),
     age_grp = cut( 
       c008, 
-      breaks = c( 0, 1, seq(from=5,to=90, by=5), 120),
+      breaks = AGE_BREAKS,
+      labels = AGE_LABELS,
       include.lowest = TRUE,
       right = FALSE
     ),
@@ -98,14 +109,55 @@ paa2022_pns <- paa2022_raw %>%
       g058 == ' ' ~ g057,
     ),
     hearing_impairment_level = case_when(
-      combined %in% c('3', '4') ~ 'Fully or Heavily impaired',
-      combined %in% c('1', '2') ~ 'No or some impairment',
+      combined %in% c('3', '4') ~ 'Heavily or Fully impaired',
+      combined %in% c('1', '2') ~ 'Not or mildly impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    hearing_impaired = case_when(
+      combined == '4' ~ 'Fully impaired',
+      combined == '3' ~ 'Heavily impaired',
+      combined == '2' ~ 'Mildly impaired',
+      combined == '1' ~ 'Not impaired',
       # TRUE ~ 'Ignored or missing information'
     ),
     diagnosed_depression = q092,
     diagnosed_anxiety = q11006,
   ) 
   
+summary_aux <- paa2022_pns %>% 
+  filter( c008 >= 5, c008 <= 40 ) %>%
+  group_by(combined, hearing_impaired, libras, diagnosed_depression) %>%
+  summarise( n = sum(Freq))
+  
+summary_depr_libras <- summary_aux %>%
+  group_by(combined, hearing_impaired, libras) %>%
+  summarise( n = sum(n)) %>%
+  na.omit() %>%
+  pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>%
+  mutate( pct_libras_users = yes / (yes+no)) %>%
+  select( -c(yes,no)) %>%
+  left_join( summary_aux %>% 
+               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
+               summarise( n = sum(n)) %>%
+               na.omit() %>% 
+               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
+               mutate( pct_depression = `1` / (`1`+`2`)) %>% 
+               select( -c(3:5)) 
+             ) %>%
+  left_join( summary_aux %>% 
+               filter( libras == 'yes') %>% 
+               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
+               summarise( n = sum(n)) %>% 
+               na.omit() %>% 
+               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
+               mutate( pct_depression_among_libras_users = `1` / (`1`+`2`)) %>%
+               select( -c(3:5)) 
+             ) 
+
+summary_depr_libras %>% 
+  ungroup() %>%
+  select(-1) %>%
+  write_csv2( 'libras_depression_summary_table.csv')
 
 sum(paa2022_pns$Freq)  # estimated brazilian population in 2019
 
@@ -114,7 +166,7 @@ sum(paa2022_pns$Freq)  # estimated brazilian population in 2019
 # ever diagnosed with depression by a physician (g058)
 depr_by_impairment <- paa2022_pns %>%
   na.omit() %>%
-  group_by( hearing_impairment_level, age_grp, gender, diagnosed_depression) %>%
+  group_by( hearing_impairment_level, age_grp, sex, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>%
   filter( diagnosed_depression != ' ') %>%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %>% 
@@ -125,32 +177,34 @@ depr_by_impairment <- bind_rows(
   depr_by_impairment %>% 
   group_by( hearing_impairment_level, age_grp) %>%
   summarise( yes = sum(yes), no = sum(no)) %>%
-  transmute( hearing_impairment_level, age_grp, gender = 'both', yes, no)
+  transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
 ) %>% mutate(
     pct = ifelse( yes+no== 0, 0, yes / (yes + no))
   ) 
 
 depr_by_impairment %>% 
+  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
   ggplot( aes( x = age_grp, y=pct*100, group = hearing_impairment_level, colour = hearing_impairment_level)) + 
   geom_point() + geom_line()+
   labs(
     y = '% of people diagnosed with depression by a physician'
     ,x = '5-year age band'
-    ,title = 'Depression prevalence'
-    ,subtitle = 'Comparison by age band among levels of hearing impairment'
-    ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
+    #,title = 'Depression prevalence'
+    #,subtitle = 'Comparison by age band among levels of hearing impairment'
+    ,caption='Source: weighted post-stratified survey data from National Health Survey (PNS 2019/IBGE)'
     ,group =''
     ,colour=''
   ) + 
   theme(
     legend.position = 'top'
+    ,axis.text.x = element_text(angle = 90)
   ) + 
-  facet_wrap(~gender, ncol=1)
+  facet_wrap(~sex, ncol=3)
 
 # ever diagnosed with anxiety by a physician (q11006)
 anx_by_impairment <- paa2022_pns %>%
   na.omit() %>%
-  group_by( hearing_impairment_level, age_grp, gender, diagnosed_anxiety) %>%
+  group_by( hearing_impairment_level, age_grp, sex, diagnosed_anxiety) %>%
   summarise( n = sum( Freq ) ) %>%
   filter( diagnosed_anxiety != ' ') %>%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %>% 
@@ -161,27 +215,29 @@ anx_by_impairment <- bind_rows(
   anx_by_impairment %>% 
     group_by( hearing_impairment_level, age_grp) %>%
     summarise( yes = sum(yes), no = sum(no)) %>%
-    transmute( hearing_impairment_level, age_grp, gender = 'both', yes, no)
+    transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
 ) %>% mutate(
   pct = ifelse( yes+no== 0, 0, yes / (yes + no))
 ) 
 
 anx_by_impairment %>% 
+  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
   ggplot( aes( x = age_grp, y=pct*100, group = hearing_impairment_level, colour = hearing_impairment_level)) + 
   geom_point() + geom_line()+
   labs(
     y = '% of people diagnosed with anxiety by a physician'
     ,x = '5-year age band'
-    ,title = 'Anxiety prevalence'
-    ,subtitle = 'Comparison by age band among levels of hearing impairment'
+    #,title = 'Anxiety prevalence'
+    #,subtitle = 'Comparison by age band among levels of hearing impairment'
     ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
     ,group =''
     ,colour=''
   ) + 
   theme(
     legend.position = 'top'
+    ,axis.text.x = element_text(angle = 90)
   ) +
-  facet_wrap(~gender, ncol=1)
+  facet_wrap(~sex, ncol=3)
 
 bind_rows(
   depr_by_impairment %>%
@@ -205,30 +261,7 @@ paa2022_pns %>%
   ) 
 
 paa2022_pns %>% 
-  filter( g05801 == '1' ) %>%     # only users of Libras
-  mutate( 
-    combined = case_when(
-      g057 == ' ' ~ g058,
-      g058 == ' ' ~ g057,
-    )
-  ) %>%
-  group_by( c008, combined ) %>%
-  summarise( n = sum(Freq)) %>% 
-  pivot_wider(id_cols = 1, names_from = 2, values_from = 3)
-
-paa2022_pns %>% 
-  filter( g05801 == '1' ) %>%     # only users of Libras
-  mutate(
-    age_grp = cut( c008, 
-                   breaks = c( seq(from=0,to=80, by=5), 150), 
-                   include.lowest = TRUE,
-                   right = FALSE
-                   ),
-    combined = case_when(
-      g057 == ' ' ~ g058,
-      g058 == ' ' ~ g057,
-    )
-  ) %>%
+  filter( g05801 == '1', c008 >= 5 & c008 <= 40 ) %>%     # only users of Libras
   na.omit() %>%
   group_by( age_grp, combined ) %>%
   summarise( n = sum(Freq)) %>% 
@@ -240,13 +273,44 @@ paa2022_pns %>%
     pct3 = ifelse( den == 0, 0, `3` / den),
     pct4 = ifelse( den == 0, 0, `4` / den),
   )
-  
+
+summary_aux <- paa2022_pns %>% 
+  mutate( combined = g058) %>%
+  filter( c008 >= 5, c008 <= 40, combined != ' ' ) %>%
+  group_by(combined, hearing_impaired, libras, diagnosed_depression) %>%
+  summarise( n = sum(Freq))
+
+summary_depr_libras <- summary_aux %>%
+  group_by(combined, hearing_impaired, libras) %>%
+  summarise( n = sum(n)) %>%
+  na.omit() %>%
+  pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>%
+  mutate( pct_libras_users = yes / (yes+no)) %>%
+  select( -c(yes,no)) %>%
+  left_join( summary_aux %>% 
+               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
+               summarise( n = sum(n)) %>%
+               na.omit() %>% 
+               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
+               mutate( pct_depression = `1` / (`1`+`2`)) %>% 
+               select( -c(3:5)) 
+  ) %>%
+  left_join( summary_aux %>% 
+               filter( libras == 'yes') %>% 
+               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
+               summarise( n = sum(n)) %>% 
+               na.omit() %>% 
+               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
+               mutate( pct_depression_among_libras_users = `1` / (`1`+`2`)) %>%
+               select( -c(3:5)) 
+  ) 
+
   
 # among users of Libras
 # ever diagnosed with depression by a physician (g058)
 depr_libras <- paa2022_pns %>% 
   filter( g05801 == '1', combined %in% c('2','3','4') ) %>% # only users of Libras with at least some hearing impairment
-  group_by( age_grp, gender, diagnosed_depression) %>%
+  group_by( age_grp, sex, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>% 
   filter( diagnosed_depression != ' ') %>%
   pivot_wider( id_cols = c(1,2), names_from = 3, values_from = n ) %>% 
@@ -257,15 +321,16 @@ depr_libras <- bind_rows(
   depr_libras %>%
     group_by(age_grp) %>%
     summarise( yes = sum(yes), no = sum(no)) %>%
-    transmute( age_grp, gender = 'both', yes, no)
+    transmute( age_grp, sex = 'both', yes, no)
   ) %>%
   mutate( pct = ifelse( yes+no== 0, 0, yes / (yes + no)) ) 
 
 depr_libras %>% 
+  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
   ggplot( aes( x = age_grp, 
                y=pct*1e2, 
-               group = gender, 
-               colour = gender
+               group = sex, 
+               colour = sex
                )
           ) + 
   geom_point() + geom_line()+
@@ -273,20 +338,21 @@ depr_libras %>%
     y = '% of people diagnosed with depression by a physician'
     ,x = '5-year age band'
     ,title = 'Depression prevalence among users of Brazilian Sign Language'
-    ,subtitle = 'Comparison by 5-year age band and gender'
+    ,subtitle = 'Comparison by 5-year age band and sex'
     ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
     ,group =''
     ,colour=''
   ) + 
   theme(
     legend.position = 'top'
+    ,axis.text.x = element_text(angle = 90)
   ) 
 
 # among users of Libras
 # ever diagnosed with anxiety by a physician (q11006)
 anx_libras <- paa2022_pns %>% 
   filter( g05801 == '1', combined %in% c('2','3','4') ) %>% # only users of Libras with at least some hearing impairment
-  group_by( age_grp, gender, diagnosed_anxiety) %>%
+  group_by( age_grp, sex, diagnosed_anxiety) %>%
   summarise( n = sum( Freq ) ) %>% 
   filter( diagnosed_anxiety != ' ') %>%
   pivot_wider( id_cols = c(1,2), names_from = 3, values_from = n ) %>% 
@@ -297,15 +363,16 @@ anx_libras <- bind_rows(
   anx_libras %>%
     group_by(age_grp) %>%
     summarise( yes = sum(yes), no = sum(no)) %>%
-    transmute( age_grp, gender = 'both', yes, no)
+    transmute( age_grp, sex = 'both', yes, no)
 ) %>%
   mutate( pct = ifelse( yes+no== 0, 0, yes / (yes + no)) ) 
 
 anx_libras %>% 
+  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
   ggplot( aes( x = age_grp, 
                y=pct*1e2, 
-               group = gender, 
-               colour = gender
+               group = sex, 
+               colour = sex
   )
   ) + 
   geom_point() + geom_line()+
@@ -313,19 +380,20 @@ anx_libras %>%
     y = '% of people diagnosed with anxiety by a physician'
     ,x = '5-year age band'
     ,title = 'Anxiety prevalence among users of Brazilian Sign Language'
-    ,subtitle = 'Comparison by 5-year age band and gender'
+    ,subtitle = 'Comparison by 5-year age band and sex'
     ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
     ,group =''
     ,colour=''
   ) + 
   theme(
     legend.position = 'top'
+    ,axis.text.x = element_text(angle = 90)
   ) 
 
 # Depression (diagnosed by a physician)
 # Comparison between users and not users of Libras
 depr_compr <- paa2022_pns %>% 
-  group_by( age_grp, gender, libras, diagnosed_depression) %>%
+  group_by( age_grp, sex, libras, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>% 
   filter( diagnosed_depression != ' ') %>%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n ) %>% 
@@ -336,11 +404,12 @@ depr_compr <- bind_rows(
   depr_compr %>%
     group_by( age_grp, libras) %>%
     summarise( yes = sum(yes), no = sum(no)) %>%
-    transmute( age_grp, gender = 'both', libras, yes, no)
+    transmute( age_grp, sex = 'both', libras, yes, no)
 ) %>%               
   mutate( pct = ifelse( yes + no == 0, 0, yes / (yes + no)) )
 
 depr_compr %>% 
+  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
   na.omit() %>%
   ggplot( 
     aes( x = age_grp, 
@@ -349,26 +418,28 @@ depr_compr %>%
                colour = libras
     )
   ) + 
-  geom_point() + geom_line()+
+  geom_point() + 
+  geom_line()+
   labs(
     y = '% of people diagnosed with depression by a physician'
     ,x = '5-year age band'
     ,title = 'Depression prevalence'
-    ,subtitle = 'Comparison by 5-year age band, gender and knowledge of Brazilian Sign Language'
+    ,subtitle = 'Comparison by 5-year age band, sex and knowledge of Brazilian Sign Language'
     ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
     ,group ='knows brazilian sign language (Libras)'
     ,colour='knows brazilian sign language (Libras)'
   ) + 
   theme(
     legend.position = 'top'
+    ,axis.text.x = element_text(angle = 90)
   ) + 
-  facet_wrap(~gender)
+  facet_wrap(~sex)
 
 
 # Anxiety (diagnosed by a physician)
 # Comparison between users and not users of Libras
 anx_compr <- paa2022_pns %>% 
-  group_by( age_grp, gender, libras, diagnosed_anxiety) %>%
+  group_by( age_grp, sex, libras, diagnosed_anxiety) %>%
   summarise( n = sum( Freq ) ) %>% 
   filter( diagnosed_anxiety != ' ') %>%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n ) %>% 
@@ -379,12 +450,13 @@ anx_compr <- bind_rows(
   anx_compr %>%
     group_by( age_grp, libras) %>%
     summarise( yes = sum(yes), no = sum(no)) %>%
-    transmute( age_grp, gender = 'both', libras, yes, no)
+    transmute( age_grp, sex = 'both', libras, yes, no)
 ) %>%               
   mutate( pct = ifelse( yes + no == 0, 0, yes / (yes + no)) )
 
 anx_compr %>% 
   na.omit() %>%
+  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
   ggplot( 
     aes( x = age_grp, 
          y=pct*1e2, 
@@ -392,22 +464,24 @@ anx_compr %>%
          colour = libras
     )
   ) + 
-  geom_point() + geom_line()+
+  geom_point() + 
+  geom_line()+
   labs(
     y = '% of people diagnosed with anxiety by a physician'
     ,x = '5-year age band'
     ,title = 'Anxiety prevalence'
-    ,subtitle = 'Comparison by 5-year age band, gender and knowledge of Brazilian Sign Language'
+    ,subtitle = 'Comparison by 5-year age band, sex and knowledge of Brazilian Sign Language'
     ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
     ,group ='knows brazilian sign language (Libras)'
     ,colour='knows brazilian sign language (Libras)'
   ) + 
   theme(
     legend.position = 'top'
+    ,axis.text.x = element_text(angle = 90)
   ) + 
-  facet_wrap(~gender)
+  facet_wrap(~sex)
 
-# hearing impairment prevalence by gender and 5-year age band
+# hearing impairment prevalence by sex and 5-year age band
 paa2022_pns %>% 
   mutate(
     hearing_impairment_level = case_when(
@@ -418,7 +492,7 @@ paa2022_pns %>%
       TRUE ~ 'undisclosed'
     )
   ) %>%
-  group_by( gender, age_grp, hearing_impairment_level) %>%
+  group_by( sex, age_grp, hearing_impairment_level) %>%
   summarise(
     n = sum( Freq )
   ) %>% 
@@ -453,21 +527,22 @@ paa2022_pns %>%
     y = 'prevalence by 10.000 people'
     ,x = '5-year age band'
     ,title = 'Hearing impairment prevalence'
-    ,subtitle = 'Comparison by 5-year age band among levels of hearing impairment and gender'
+    ,subtitle = 'Comparison by 5-year age band among levels of hearing impairment and sex'
     ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
     ,group =''
     ,colour=''
   ) + 
   theme(
     legend.position = 'top'
+    ,axis.text.x = element_text(angle = 90)
   ) + 
-  facet_wrap(~gender, ncol=4,scales = 'free_y')
+  facet_wrap(~sex, ncol=4,scales = 'free_y')
 
 # srvyr, if needed ...
 #poststr <- data_posterior %>% as_survey()
 #matr <- poststr %>%
 #  filter( age == 15 ) %>%
-#  group_by(gender, hearing_impairment_level, brazilian_sign_language_use) %>%
+#  group_by(sex, hearing_impairment_level, brazilian_sign_language_use) %>%
 #  summarise( n = survey_total())
 
 

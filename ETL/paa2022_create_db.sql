@@ -14,7 +14,7 @@
 -- drop table if exists censo2010.life_table
            create table censo2010.lifetables (
                         age_grp text,
-                        gender text,
+                        sex text,
                         year text,
                         name text,
                         value text
