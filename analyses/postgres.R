@@ -239,11 +239,44 @@ anx_by_impairment %>%
   ) +
   facet_wrap(~sex, ncol=3)
 
-bind_rows(
+prevalences <- bind_rows(
   depr_by_impairment %>%
   mutate( disease = 'depression'),
   anx_by_impairment %>%
-  mutate( disease = 'anxiety') ) %>%
+  mutate( disease = 'anxiety') ) 
+
+dfle <- prevalences %>% 
+  transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %>%
+  arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %>% 
+  na.omit() %>%
+  left_join(censo2010, by = c('age_grp','sex')) %>% 
+  mutate( aux = (1-pix)*Lxn ) %>% 
+  group_by(disease, sex, hearing_impairment_level) %>%
+  mutate( 
+    dfle = cumsum(aux)/lx, 
+    age_grp = factor( age_grp, levels = AGE_LABELS),
+    dfle_over_Ex = dfle / Ex
+    ) %>% 
+  select( -aux ) %>% 
+  arrange( disease, sex, hearing_impairment_level, age_grp ) 
+
+dfle_plot <- dfle %>%
+  filter( disease == 'depression') %>% 
+  ggplot( aes( x = age_grp ) ) + 
+  geom_hline( yintercept = 1, linetype = 5) + 
+  geom_line( aes( group = hearing_impairment_level, linetype = hearing_impairment_level, y = dfle_over_Ex )) + 
+  labs(
+    y = '[Disease-free Life Expectancy] / [Life Expectancy]',
+    x = 'Quinquennial age group',
+    linetype = 'Hearing impairment level'
+  ) +
+  ylim( 0.6, 1) +
+  theme( legend.position = 'top', axis.text.x = element_text(angle = 90) ) +
+  facet_wrap( ~ sex, nrow=1)
+
+ggsave( plot = dfle_plot, filename = 'dfle_over_ex.png', width=10, height=5)
+
+prevalences %>% 
   write_csv2('prevalences.csv')
 
 # "Know Libras"
