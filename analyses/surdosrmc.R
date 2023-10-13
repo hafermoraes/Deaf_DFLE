@@ -74,3 +74,10 @@ round( svytable(formula=~e001 + g05801, design=subset(pns2019_posterior, g058 !=
     pct_empregado = empregado / (empregado + desempregado),
     pct_desempregado = 1 - pct_empregado
     )
+## A tibble: 2 × 5
+## usa_libras empregado desempregado pct_empregado pct_desempregado
+## <chr>          <dbl>        <dbl>         <dbl>            <dbl>
+## 1 sim              118          151         0.439            0.561
+## 2 nao             3260         7700         0.297            0.703
+## Warning message:
+##  In `[.survey.design2`(x, r, ) : 7 strata have only one PSU in this subset.
