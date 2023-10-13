@@ -59,15 +59,18 @@ round( svytable( formula=~g057 + g05801, design = subset(pns2019_posterior, c008
 # makes sense but does not match...
 
 # Unemployment among deaf adults who use brazilian sign language
-round( svytable(formula=~e001 + g05801, design=subset(pns2019_posterior, g058 == 1 & c008 >=18))/1e3, 0) %>%
+round( svytable(formula=~e001 + g05801, design=subset(pns2019_posterior, g058 != 1 & c008 >=18))/1e3, 0) %>%
   as.data.frame() %>%
   pivot_wider(id_cols=1, names_from=2, values_from=3) %>%
   rename( ocupado = 1, sim=3, nao=4) %>%
   select(-2) %>%
   filter(ocupado != ' ') %>%
   mutate(
-    ocupado = ifelse( ocupado == '1', 'sim', 'não'),
+    ocupado = ifelse( ocupado == '1', 'empregado', 'desempregado'),
   ) %>%
   pivot_longer(-1, names_to = "usa_libras", values_to = "n") %>%
   pivot_wider( id_cols = 1, names_from = "ocupado", values_from = "n") %>%
-  mutate(pct_empregado = sim / (sim+não))
+  mutate(
+    pct_empregado = empregado / (empregado + desempregado),
+    pct_desempregado = 1 - pct_empregado
+    )
