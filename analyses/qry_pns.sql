@@ -11,6 +11,7 @@
         j001,   -- health_perception (for validation purposes only...)
         c006,   -- gender
         c008,   -- age
+        e001,   -- work
         q092,   -- ever diagnosed with depression by a physician
         q11006, -- ever diagnosed with anxiety by a physician
         g058,   -- hearing impairment level
