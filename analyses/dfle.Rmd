@@ -1,7 +1,7 @@
 ---
-title: "PAA 2022 Paper"
-author: "Rafael R. de Moraes"
-date: "2022-09-11"
+title: "Support analysis for paper on Deaf Depression-free Life Expectancy"
+author: "Rafael Rodrigues de Moraes"
+date: "2024-05-18"
 output:
   html_document:
     df_print: paged
@@ -12,7 +12,7 @@ editor_options:
 
 This RMarkdown notebook serves as the official documentation of the
 steps undertaken to produce the data and graphics that will show up on
-the PAA 2022 paper.
+the Deaf Depression-free Life Expectancy paper.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -184,12 +184,12 @@ health perception the numbers do not match. Unfortunately it was not
 possible to reconcile the differences but as the total figures are the
 same, we proceed with the analysis.
 
-# PAA paper related analyses
+# Deaf Depression-free Life Expectancy paper related analyses
 
 From this point on several exploratory data analyses will be shared.
 
 ```{r pns2019_raw, include=FALSE}
-paa2022_raw <- svytable(
+dfle_raw <- svytable(
   formula=~c008 + # age at interview date
     g058 +        # level of hearing impairment
     g057 +        # level of hearing impairment (despite use of hearing devices)
@@ -205,7 +205,7 @@ AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
                 ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
                 ,'70-74','75-79','80-84','85-89','90+')
 
-paa2022_pns <- paa2022_raw %>% 
+dfle_pns <- dfle_raw %>% 
   as.data.frame(stringsAsFactors = FALSE) %>%
   mutate(
     c008 = as.numeric(c008),
@@ -240,7 +240,7 @@ paa2022_pns <- paa2022_raw %>%
 ```
 
 ```{r depr_libras_summary, echo=FALSE, message=FALSE, warning=FALSE}
-summary_aux <- paa2022_pns %>% 
+summary_aux <- dfle_pns %>% 
   filter( c008 >= 5, c008 <= 40 ) %>%
   group_by(combined, hearing_impaired, libras, diagnosed_depression) %>%
   summarise( n = sum(Freq))
@@ -278,7 +278,7 @@ summary_aux %>%
 
 ```{r depression_prevalence, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
 # ever diagnosed with depression by a physician (g058)
-depr_by_impairment <- paa2022_pns %>%
+depr_by_impairment <- dfle_pns %>%
   na.omit() %>%
   group_by( hearing_impairment_level, age_grp, sex, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>%
@@ -321,7 +321,7 @@ depr_by_impairment %>%
 ```{r depression_libras, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
 # among users of Libras
 # ever diagnosed with depression by a physician (g058)
-depr_libras <- paa2022_pns %>% 
+depr_libras <- dfle_pns %>% 
   filter( g05801 == '1', combined %in% c('2','3','4') ) %>% # only users of Libras with at least some hearing impairment
   group_by( age_grp, sex, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>% 
@@ -367,7 +367,7 @@ depr_libras %>%
 ```{r depression_comparison_libras, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
 # Depression (diagnosed by a physician)
 # Comparison between users and not users of Libras
-depr_compr <- paa2022_pns %>% 
+depr_compr <- dfle_pns %>% 
   group_by( age_grp, sex, libras, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>% 
   filter( diagnosed_depression != ' ') %>%
@@ -415,7 +415,7 @@ depr_compr %>%
 
 ```{r anxiety_prevalence, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
 # ever diagnosed with anxiety by a physician (q11006)
-anx_by_impairment <- paa2022_pns %>%
+anx_by_impairment <- dfle_pns %>%
   na.omit() %>%
   group_by( hearing_impairment_level, age_grp, sex, diagnosed_anxiety) %>%
   summarise( n = sum( Freq ) ) %>%
@@ -458,7 +458,7 @@ anx_by_impairment %>%
 ```{r anxiety_libras, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
 # among users of Libras
 # ever diagnosed with anxiety by a physician (q11006)
-anx_libras <- paa2022_pns %>% 
+anx_libras <- dfle_pns %>% 
   filter( g05801 == '1', combined %in% c('2','3','4') ) %>% # only users of Libras with at least some hearing impairment
   group_by( age_grp, sex, diagnosed_anxiety) %>%
   summarise( n = sum( Freq ) ) %>% 
@@ -504,7 +504,7 @@ anx_libras %>%
 ```{r anxiety_comparison_libras, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
 # Anxiety (diagnosed by a physician)
 # Comparison between users and not users of Libras
-anx_compr <- paa2022_pns %>% 
+anx_compr <- dfle_pns %>% 
   group_by( age_grp, sex, libras, diagnosed_anxiety) %>%
   summarise( n = sum( Freq ) ) %>% 
   filter( diagnosed_anxiety != ' ') %>%
@@ -552,7 +552,7 @@ anx_compr %>%
 
 ```{r hearing_impairment, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
 # hearing impairment prevalence by sex and 5-year age band
-paa2022_pns %>% 
+dfle_pns %>% 
   mutate(
     hearing_impairment_level = case_when(
       combined == '1' ~ 'none',
