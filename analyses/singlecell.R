@@ -1,36 +1,30 @@
 # for reproducibility...
-# > sessionInfo()
-# R version 4.2.1 (2022-06-23)
-# Platform: x86_64-pc-linux-gnu (64-bit)
-# Running under: Ubuntu 20.04.5 LTS
-# 
-# Matrix products: default
-# BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
-# LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so.3
-# 
-# locale:
-#   [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8       
-# [4] LC_COLLATE=en_US.UTF-8     LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
-# [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                  LC_ADDRESS=C              
-# [10] LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
-# 
-# attached base packages:
-#   [1] grid      stats     graphics  grDevices utils     datasets  methods   base     
-# 
-# other attached packages:
-#   [1] survey_4.1-1   survival_3.3-1 Matrix_1.4-1   tidyr_1.2.0    dplyr_1.0.10   PNSIBGE_0.1.7 
-# 
-# loaded via a namespace (and not attached):
-#   [1] Rcpp_1.0.9        cellranger_1.1.0  pillar_1.8.1      compiler_4.2.1    bitops_1.0-7     
-# [6] RPostgres_1.4.4   tools_4.2.1       bit_4.0.4         lattice_0.20-45   lifecycle_1.0.1  
-# [11] tibble_3.1.8      gtable_0.3.1      pkgconfig_2.0.3   rlang_1.0.5       DBI_1.1.3        
-# [16] cli_3.3.0         rstudioapi_0.14   curl_4.3.2        withr_2.5.0       httr_1.4.4       
-# [21] mitools_2.4       generics_0.1.3    vctrs_0.4.1       hms_1.1.2         bit64_4.0.5      
-# [26] tidyselect_1.1.2  glue_1.6.2        R6_2.5.1          fansi_1.0.3       readxl_1.4.1     
-# [31] vroom_1.5.7       projmgr_0.1.0     ggplot2_3.3.6     purrr_0.3.4       readr_2.1.2      
-# [36] tzdb_0.3.0        blob_1.2.3        magrittr_2.0.3    scales_1.2.1      ellipsis_0.3.2   
-# [41] splines_4.2.1     assertthat_0.2.1  timeDate_4021.104 colorspace_2.0-3  utf8_1.2.2       
-# [46] RCurl_1.98-1.8    munsell_0.5.0     crayon_1.5.1    
+## > sessionInfo()
+## R version 4.4.0 (2024-04-24)
+## Platform: x86_64-pc-linux-gnu
+## Running under: Linux Mint 21
+
+## Matrix products: default
+## BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+## LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.20.so;  LAPACK version 3.10.0
+
+## locale:
+##  [1] LC_CTYPE=pt_BR.UTF-8       LC_NUMERIC=C
+##  [3] LC_TIME=pt_BR.UTF-8        LC_COLLATE=pt_BR.UTF-8
+##  [5] LC_MONETARY=pt_BR.UTF-8    LC_MESSAGES=pt_BR.UTF-8
+##  [7] LC_PAPER=pt_BR.UTF-8       LC_NAME=C
+##  [9] LC_ADDRESS=C               LC_TELEPHONE=C
+## [11] LC_MEASUREMENT=pt_BR.UTF-8 LC_IDENTIFICATION=C
+
+## time zone: America/Sao_Paulo
+## tzcode source: system (glibc)
+
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base
+
+## loaded via a namespace (and not attached):
+## [1] compiler_4.4.0
+
 
 # install.packages(c('PNSIBGE','survey','dplyr','tidyr'))
 library(PNSIBGE)  # (version 0.1.7)  get_pns
