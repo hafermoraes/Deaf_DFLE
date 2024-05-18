@@ -27,6 +27,7 @@ manipulate the data frames (`tidyverse`).
 ```{r libraries, message=FALSE, warning=FALSE, include=TRUE}
 library(tidyverse)
 library(ggstats)
+library(svglite)
 library(DBI)
 library(survey)
 library(RPostgres)
@@ -216,7 +217,45 @@ dfle_raw <- svytable(
 
 ## Table 2: Libras users and prevalence of depression for respondents with age between 5 and 40 years, Brazil, 2019
 
-```{r dfle_table02, echo=FALSE, message=FALSE, warning=FALSE}
+```{r dfle_table02, include=TRUE}
+AGE_BREAKS <- c( 0, 1, seq(from=5,to=80, by=5), 1e3)
+AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
+                ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
+                ,'70-74','75-79','80+')
+
+dfle_pns <- dfle_raw %>% 
+  as.data.frame(stringsAsFactors = FALSE) %>%
+  mutate(
+    c008 = as.numeric(c008),
+    sex = factor( c006, levels = 1:2, labels = c('male', 'female')),
+    libras = factor( g05801, levels = 1:2, labels = c('yes', 'no')),
+    age_grp = cut( 
+      c008, 
+      breaks = AGE_BREAKS,
+      labels = AGE_LABELS,
+      include.lowest = TRUE,
+      right = FALSE
+    ),
+    combined = case_when(
+      g057 == ' ' ~ g058,
+      g058 == ' ' ~ g057,
+    ),
+    hearing_impairment_level = case_when(
+      combined %in% c('3', '4') ~ 'Heavily or Fully impaired',
+      combined %in% c('1', '2') ~ 'Not or mildly impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    hearing_impaired = case_when(
+      combined == '4' ~ 'Fully impaired',
+      combined == '3' ~ 'Heavily impaired',
+      combined == '2' ~ 'Mildly impaired',
+      combined == '1' ~ 'Not impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    diagnosed_depression = q092,
+    diagnosed_anxiety = q11006,
+  ) 
+
 summary_aux <- dfle_pns %>% 
   filter( c008 >= 5, c008 <= 40 ) %>%
   group_by(combined, hearing_impaired, libras, diagnosed_depression) %>%
@@ -253,7 +292,7 @@ summary_aux %>%
 
 ## Figure 1: Depression prevalence by sex and age band among grouped levels of hearing impairment, Brazil, 2019
 
-```{r dfle_figure01, echo=FALSE, message=FALSE, warning=FALSE}
+```{r dfle_figure01, include=TRUE}
 AGE_BREAKS <- c( 0, 1, seq(from=5,to=80, by=5), 1e3)
 AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
                 ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
@@ -347,14 +386,157 @@ fig1 <- depr_by_impairment %>%
     labels = scales::percent_format(scale = 100)
     )
 
+ggsave(
+  filename = 'fig01.png',
+  plot = fig1,
+  width = 7,
+  height = 5
+)
+
+ggsave(
+  filename = 'fig01.pdf',
+  plot = fig1,
+  width = 7,
+  height = 5
+)
+
+ggsave(
+  filename = 'fig01.svg',
+  plot = fig1,
+  width = 7,
+  height = 5
+)
+
 fig1
 ```
 
 ## Table 3: Comparison by sex, age, and grouped level of hearing impairment of life expectancy and depression-free life expectancy, Brazil
 
+```{r dfle_table03, include=TRUE}
+AGE_BREAKS <- c( 0, 1, seq(from=5,to=90, by=5), 1e3)
+AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
+                ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
+                ,'70-74','75-79','80-84','85-89','90+')
+
+dfle_pns <- dfle_raw %>% 
+  as.data.frame(stringsAsFactors = FALSE) %>%
+  mutate(
+    c008 = as.numeric(c008),
+    sex = factor( c006, levels = 1:2, labels = c('male', 'female')),
+    libras = factor( g05801, levels = 1:2, labels = c('yes', 'no')),
+    age_grp = cut( 
+      c008, 
+      breaks = AGE_BREAKS,
+      labels = AGE_LABELS,
+      include.lowest = TRUE,
+      right = FALSE
+    ),
+    combined = case_when(
+      g057 == ' ' ~ g058,
+      g058 == ' ' ~ g057,
+    ),
+    hearing_impairment_level = case_when(
+      combined %in% c('3', '4') ~ 'Heavily or Fully impaired',
+      combined %in% c('1', '2') ~ 'Not or mildly impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    hearing_impaired = case_when(
+      combined == '4' ~ 'Fully impaired',
+      combined == '3' ~ 'Heavily impaired',
+      combined == '2' ~ 'Mildly impaired',
+      combined == '1' ~ 'Not impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    diagnosed_depression = q092,
+    diagnosed_anxiety = q11006,
+  ) 
+
+# ever diagnosed with depression by a physician (g058)
+depr_by_impairment <- dfle_pns %>%
+  na.omit() %>%
+  group_by( hearing_impairment_level, age_grp, sex, diagnosed_depression) %>%
+  summarise( n = sum( Freq ) ) %>%
+  filter( diagnosed_depression != ' ') %>%
+  pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %>% 
+  rename( yes = `1`, no = `2`) 
+
+depr_by_impairment <- bind_rows(
+  depr_by_impairment,
+  depr_by_impairment %>% 
+  group_by( hearing_impairment_level, age_grp) %>%
+  summarise( yes = sum(yes), no = sum(no)) %>%
+  transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
+) %>% mutate(
+    pct = ifelse( yes+no== 0, 0, yes / (yes + no))
+  ) 
+
+# ever diagnosed with anxiety by a physician (q11006)
+anx_by_impairment <- dfle_pns %>%
+  na.omit() %>%
+  group_by( hearing_impairment_level, age_grp, sex, diagnosed_anxiety) %>%
+  summarise( n = sum( Freq ) ) %>%
+  filter( diagnosed_anxiety != ' ') %>%
+  pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %>% 
+  rename( yes = `1`, no = `2`) 
+
+anx_by_impairment <- bind_rows(
+  anx_by_impairment,
+  anx_by_impairment %>% 
+    group_by( hearing_impairment_level, age_grp) %>%
+    summarise( yes = sum(yes), no = sum(no)) %>%
+    transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
+) %>% mutate(
+  pct = ifelse( yes+no== 0, 0, yes / (yes + no))
+) 
+
+prevalences <- bind_rows(
+  depr_by_impairment %>%
+  mutate( disease = 'depression'),
+  anx_by_impairment %>%
+  mutate( disease = 'anxiety') ) 
+
+dfle <- prevalences %>% 
+  transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %>%
+  arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %>% 
+  na.omit() %>%
+  left_join(censo2010, by = c('age_grp','sex')) %>% 
+  mutate( aux = (1-pix)*Lxn ) %>% 
+  group_by(disease, sex, hearing_impairment_level) %>%
+  mutate( 
+    dfle = cumsum(aux)/lx, 
+    age_grp = factor( age_grp, levels = AGE_LABELS),
+    dfle_over_Ex = dfle / Ex
+    ) %>% 
+  select( -aux ) %>% 
+  arrange( disease, sex, hearing_impairment_level, age_grp ) 
+
+dfle %>% 
+  filter(
+    disease == 'depression',
+    age_grp %in% c('<1', '20-24', '40-44','60-64','80-84')
+  ) %>%
+  mutate(
+    age = case_when(
+      age_grp == '<1' ~ 0,
+      age_grp == '20-24' ~ 20,
+      age_grp == '40-44' ~ 40,
+      age_grp == '60-64' ~ 60,
+      age_grp == '80-84' ~ 80,
+    )
+  ) %>%
+  pivot_wider(
+    id_cols = c('sex', 'age', 'Ex'),
+    names_from = 'hearing_impairment_level',
+    values_from = 'dfle'
+  ) %>%
+  select( 1,2,3,5,4) %>%
+  knitr::kable()
+```
+
+
 ## Figure 2: Proportional impact of depression on life expectancy according to sex and grouped hearing impairment level, Brazil
 
-```{r dfle_figure02, echo=FALSE, message=FALSE, warning=FALSE}
+```{r dfle_figure02, include=TRUE}
 AGE_BREAKS <- c( 0, 1, seq(from=5,to=90, by=5), 1e3)
 AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
                 ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
@@ -453,7 +635,7 @@ dfle <- prevalences %>%
   arrange( disease, sex, hearing_impairment_level, age_grp ) 
 
 
-dfle_plot <- dfle %>% 
+fig2 <- dfle %>% 
   filter(disease == 'depression') %>%
   filter(!age_grp %in% c('<1','1-4','5-9','10-14','85-89','90+')) %>% 
   mutate(
@@ -488,8 +670,11 @@ dfle_plot <- dfle %>%
     fill = expression("Proportional impact of disease on e"[x])
   )+
   theme_bw(base_size = 15) +
-  theme(legend.position = "top", axis.text.x =
-  element_text(angle = 90, vjust = .5)) +
+  theme(
+    legend.position = "top", 
+    axis.text.x = element_text(angle = 90, vjust = .5),
+    panel.grid = element_blank()
+    ) +
   facet_grid(hearing_impairment_level ~ sex) +
   scale_fill_manual(
     name = "", 
@@ -501,13 +686,34 @@ dfle_plot <- dfle %>%
     labels = scales::percent_format(scale = 100)
   )
 
-dfle_plot
+ggsave(
+  filename = 'fig02.png',
+  plot = fig2,
+  width = 10,
+  height = 8
+)
+
+ggsave(
+  filename = 'fig02.pdf',
+  plot = fig2,
+  width = 10,
+  height = 8
+)
+
+ggsave(
+  filename = 'fig02.svg',
+  plot = fig2,
+  width = 10,
+  height = 8
+)
+
+fig2
   
 ```
 
 ## Figure 03 (Supplementary Material): Depression prevalence among users of Brazilian Sign Language by 5-year age group and sex, Brazil, 2019
 
-```{r dfle_figure03_suppl_material, echo=FALSE, message=FALSE, warning=FALSE}
+```{r dfle_figure03_suppl_material, include=TRUE}
 # among users of Libras
 # ever diagnosed with depression by a physician (g058)
 depr_libras <- dfle_pns %>% 
@@ -561,6 +767,7 @@ fig3 <- depr_libras %>%
   )+
   theme_bw(base_size = 14) +
   theme(
+    panel.grid = element_blank(),
     panel.spacing.x = unit(1.5, "lines"),
     legend.position = 'none'
   ) +
@@ -572,12 +779,33 @@ fig3 <- depr_libras %>%
   )+
   facet_wrap(~ sex) + coord_flip()
 
+ggsave(
+  filename = 'fig03.png',
+  plot = fig3,
+  width = 9,
+  height = 5
+)
+
+ggsave(
+  filename = 'fig03.pdf',
+  plot = fig3,
+  width = 9,
+  height = 5
+)
+
+ggsave(
+  filename = 'fig03.svg',
+  plot = fig3,
+  width = 9,
+  height = 5
+)
+
 fig3
 ```
 
 ## Figure 04 (Supplementary Material): Depression prevalence by 5-year age group, sex and knowledge of Brazilian Sign Language
 
-```{r dfle_figure04_suppl_material, echo=FALSE, message=FALSE, warning=FALSE}
+```{r dfle_figure04_suppl_material, include=TRUE}
 # Depression (diagnosed by a physician)
 # Comparison between users and not users of Libras
 depr_compr <- dfle_pns %>% 
@@ -629,12 +857,37 @@ fig4 <- depr_compr %>%
     ,colour = 'Knows brazilian sign \n language (Libras)'
   )+
   theme_bw(base_size = 13) +
-  theme(legend.position = 'top')+
+  theme(
+    legend.position = 'top',
+    panel.grid = element_blank()
+  )+
   scale_color_brewer(palette = "Dark2") +
   scale_y_continuous(labels =
   scales::percent_format(scale = 100)) +
   facet_wrap(~sex) +
   coord_flip()
+
+ggsave(
+  filename = 'fig04.png',
+  plot = fig4,
+  width = 7,
+  height = 5
+)
+
+ggsave(
+  filename = 'fig04.pdf',
+  plot = fig4,
+  width = 7,
+  height = 5
+)
+
+ggsave(
+  filename = 'fig04.svg',
+  plot = fig4,
+  width = 7,
+  height = 5
+)
+
 
 fig4
 ```
