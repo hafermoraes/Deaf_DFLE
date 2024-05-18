@@ -8,7 +8,7 @@ library(stringr)
 
 ## dicionário de dados
 dict <- read_excel(
-    path = '/tmp/paa_pns/dicionario_PNS_microdados_2019.xls'
+    path = '/tmp/dfle_pns/dicionario_PNS_microdados_2019.xls'
    ,sheet = 'dicionário pns'
    ,range = 'C6:G5224'
    ,col_names = FALSE
@@ -21,7 +21,7 @@ dict %>%
     mutate(
         enun = str_replace_all( enun, '[\r\n\"\\"]', '')
     ) %>%
-    write_delim( '/tmp/paa_pns/pg_pns2019_vars', delim='|', quote = 'none', col_names = FALSE)
+    write_delim( '/tmp/dfle_pns/pg_pns2019_vars', delim='|', quote = 'none', col_names = FALSE)
 
 
 ## enunciados por questão
@@ -36,7 +36,7 @@ enuns <- dict %>%
 
 ## colunas dos microdados
 fs <- read_delim(
-    '/tmp/paa_pns/input_PNS_2019.sas'
+    '/tmp/dfle_pns/input_PNS_2019.sas'
    ,delim = '\t'
    ,skip = 10
    ,col_names=FALSE
@@ -70,16 +70,16 @@ fs <- fs %>%
 
 ## exporta intervalos de coluna argumento -c do comando 'cut' a ser usado no terminal
 paste0( fs$arg_cut, collapse = ',') %>%
-    write_file( '/tmp/paa_pns/arg_cut')
+    write_file( '/tmp/dfle_pns/arg_cut')
 
 ## exporta dicionário de dados tratados como comentários para bash script que
 ## converte microdados de tamanho fixo para arquivo delimitado
 fs %>%
     select(comments) %>%
-    write_delim( '/tmp/paa_pns/comments', delim='', quote = 'none')
+    write_delim( '/tmp/dfle_pns/comments', delim='', quote = 'none')
 
 ## exporta corpo da query de criação da tabela no postgres
 fs %>%
     select( pg_create_table ) %>%
-    write_delim( '/tmp/paa_pns/pg_pns2019_createtable', delim='', quote = 'none', col_names = FALSE)
+    write_delim( '/tmp/dfle_pns/pg_pns2019_createtable', delim='', quote = 'none', col_names = FALSE)
     

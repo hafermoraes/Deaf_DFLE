@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # variaveis
-awk '$1 ~ /^[^"\n\r]/' /tmp/paa_pns/pg_pns2019_vars > /tmp/paa_pns/aux 
-mv /tmp/paa_pns/aux /tmp/paa_pns/pg_pns2019_vars
+awk '$1 ~ /^[^"\n\r]/' /tmp/dfle_pns/pg_pns2019_vars > /tmp/dfle_pns/aux 
+mv /tmp/dfle_pns/aux /tmp/dfle_pns/pg_pns2019_vars
 
-sed 's/"//g' -i /tmp/paa_pns/pg_pns2019_vars
+sed 's/"//g' -i /tmp/dfle_pns/pg_pns2019_vars
 
 # microdados
-ARG_C=$(cat /tmp/paa_pns/arg_cut)
-cut --output-delimiter='|' -c$ARG_C /tmp/paa_pns/PNS_2019.txt > /tmp/paa_pns/pg_pns2019_microdata.csv
+ARG_C=$(cat /tmp/dfle_pns/arg_cut)
+cut --output-delimiter='|' -c$ARG_C /tmp/dfle_pns/PNS_2019.txt > /tmp/dfle_pns/pg_pns2019_microdata.csv
 
 # Dicionário de dados da PNS 2019:
 

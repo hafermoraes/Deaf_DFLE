@@ -8,7 +8,7 @@ services:
   
   etl:
     image: "rocker/tidyverse:4.2.1"
-    container_name: paa_etl
+    container_name: dfle_etl
     build:
       context: ./ETL
       dockerfile: Dockerfile_ETL
@@ -16,13 +16,13 @@ services:
     environment:  # reads from local .env file
       - USER=${ETL_USER}
       - PASSWORD=${ETL_PASS}
-    working_dir: /etl_paa/
+    working_dir: /dfle_etl/
     volumes:
-      - pg_data:/tmp/paa_pns/
+      - pg_data:/tmp/dfle_pns/
 
   db:
     image: "postgres:14.4"
-    container_name: paa_db
+    container_name: dfle_db
     restart: always
     environment:  # reads from local .env file
       - POSTGRES_DB=${PG_DB}
@@ -33,11 +33,11 @@ services:
     working_dir: /pg_data/
     volumes:
       - pg_data:/pg_data/
-      - ./ETL/paa2022_create_db.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./ETL/dfle_create_db.sql:/docker-entrypoint-initdb.d/schema.sql
 
   rstudio:
     image: "rocker/tidyverse:4.2.1"
-    container_name: paa_rstudio
+    container_name: dfle_rstudio
     restart: always
     # depends_on:
     #   - "db"
@@ -60,7 +60,7 @@ services:
       
   pgadmin:
     image: "dpage/pgadmin4"
-    container_name: paa_pgadmin
+    container_name: dfle_pgadmin
     environment: # reads from local .env file
       - PGADMIN_DEFAULT_EMAIL=${PGAD_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGAD_PASS}
