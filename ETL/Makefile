@@ -12,25 +12,25 @@ dependencies: ## Install required dependencies
 
 extract: ## Fetch the dictionary and microdata of National Health Survey (PNS2019) from FTP Server and save it to disk
 	@echo 'Fetching the PNS 2019 microdata and saving it to disk...'
-	@rm -rf /tmp/paa_pns/; mkdir /tmp/paa_pns 
-	@wget --no-passive-ftp -tries=100 ftp://ftp.ibge.gov.br/PNS/2019/Microdados/Dados/PNS_2019_20220525.zip -O /tmp/paa_pns/pns_2019.zip >/dev/null 2>&1
+	@rm -rf /tmp/dfle_pns/; mkdir /tmp/dfle_pns
+	@wget --no-passive-ftp -tries=100 ftp://ftp.ibge.gov.br/PNS/2019/Microdados/Dados/PNS_2019_20220525.zip -O /tmp/dfle_pns/pns_2019.zip >/dev/null 2>&1
 	@echo 'DONE. Unziping the microdata...'
-	@unzip /tmp/paa_pns/pns_2019.zip -d /tmp/paa_pns/ >/dev/null 2>&1
+	@unzip /tmp/dfle_pns/pns_2019.zip -d /tmp/dfle_pns/ >/dev/null 2>&1
 	@echo 'DONE. Deleting the downloaded zip file...'
-	@rm -rf /tmp/paa_pns/pns_2019.zip
+	@rm -rf /tmp/dfle_pns/pns_2019.zip
 	@echo 'DONE.'
 	@echo 'Fetching the PNS 2019 data dictionary and saving it to disk...'
-	@wget --no-passive-ftp -tries=100 ftp://ftp.ibge.gov.br/PNS/2019/Microdados/Documentacao/Dicionario_e_input_20220530.zip -O /tmp/paa_pns/pns_2019.zip >/dev/null 2>&1
+	@wget --no-passive-ftp -tries=100 ftp://ftp.ibge.gov.br/PNS/2019/Microdados/Documentacao/Dicionario_e_input_20220530.zip -O /tmp/dfle_pns/pns_2019.zip >/dev/null 2>&1
 	@echo 'DONE. Unziping the data dictionary...'
-	@unzip /tmp/paa_pns/pns_2019.zip -d /tmp/paa_pns/ >/dev/null 2>&1
+	@unzip /tmp/dfle_pns/pns_2019.zip -d /tmp/dfle_pns/ >/dev/null 2>&1
 	@echo 'DONE. Deleting the downloaded zip file...'
-	@rm -rf /tmp/paa_pns/pns_2019.zip
+	@rm -rf /tmp/dfle_pns/pns_2019.zip
 	@echo 'DONE.'
 	@echo 'Fetching the abbreviated life tables from 2010th edition of brazilian census...'
-	@wget --no-passive-ftp -tries=100 ftp://ftp.ibge.gov.br/Tabuas_Abreviadas_de_Mortalidade/2010/tabelas_xls.zip -O /tmp/paa_pns/censo2010_lifetables.zip >/dev/null 2>&1
-	@unzip -j /tmp/paa_pns/censo2010_lifetables.zip "tabela_1_1.xls" -d /tmp/paa_pns >/dev/null 2>&1
-	@rm -rf /tmp/paa_pns/censo2010_lifetables.zip
-	@mv /tmp/paa_pns/tabela_1_1.xls /tmp/paa_pns/censo2010_lifetables.xls
+	@wget --no-passive-ftp -tries=100 ftp://ftp.ibge.gov.br/Tabuas_Abreviadas_de_Mortalidade/2010/tabelas_xls.zip -O /tmp/dfle_pns/censo2010_lifetables.zip >/dev/null 2>&1
+	@unzip -j /tmp/dfle_pns/censo2010_lifetables.zip "tabela_1_1.xls" -d /tmp/dfle_pns >/dev/null 2>&1
+	@rm -rf /tmp/dfle_pns/censo2010_lifetables.zip
+	@mv /tmp/dfle_pns/tabela_1_1.xls /tmp/dfle_pns/censo2010_lifetables.xls
 	@echo 'DONE.'
 
 transform: ## Prepare files for ingesting into postgres database
@@ -42,12 +42,12 @@ transform: ## Prepare files for ingesting into postgres database
 
 load: ## Ingest treated data into the database
 	@echo 'Ingesting the treated microdata and data dictionary into database...'
-	@psql -U rmoraes -d postgres < paa2022_create_db.sql
+	@psql -U rmoraes -d postgres < dfle_create_db.sql
 	@echo 'DONE.'
 
 .PHONY: help
 help: ## Show this help message
-	@echo 'Makefile documentation for the PAA/PNS2019 paper'
+	@echo 'Makefile documentation for the Deaf Depression-free Life Expectancy/PNS2019 paper'
 	@echo ''
 	@echo 'Usage:'
 	@echo '    make [target]'
