@@ -9,19 +9,19 @@ library(readr)
 lt2010w <- bind_rows(
     ## Both sexes
     read_excel(
-        path = '/tmp/paa_pns/censo2010_lifetables.xls',
+        path = '/tmp/dfle_pns/censo2010_lifetables.xls',
         sheet = 'BR',
         range = 'A6:K25',
         col_names = FALSE ) %>% mutate( sex = 'both', year = '2010' ),
     ## Male
     read_excel(
-        path = '/tmp/paa_pns/censo2010_lifetables.xls',
+        path = '/tmp/dfle_pns/censo2010_lifetables.xls',
         sheet = 'BR',
         range = 'A27:K46',
         col_names = FALSE ) %>% mutate( sex = 'male', year = '2010' ),
     ## Female
     read_excel(
-        path = '/tmp/paa_pns/censo2010_lifetables.xls',
+        path = '/tmp/dfle_pns/censo2010_lifetables.xls',
         sheet = 'BR',
         range = 'A48:K67',
         col_names = FALSE ) %>% mutate( sex = 'female', year = '2010' ),
@@ -56,7 +56,7 @@ lt2010 <- lt2010w %>%
 ## Write to disk (csv file for database ingestion)
 lt2010 %>%
     write_delim(
-        file = '/tmp/paa_pns/censo2010_lifetables.csv',
+        file = '/tmp/dfle_pns/censo2010_lifetables.csv',
         delim = '|',
         col_names = FALSE
     )
