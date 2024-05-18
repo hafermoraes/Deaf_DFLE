@@ -29,7 +29,7 @@ services:
       - POSTGRES_USER=${PG_USER}
       - POSTGRES_PASSWORD=${PG_PASSWORD}
     ports:
-      - "5433:5432"
+      - "5434:5432"
     working_dir: /pg_data/
     volumes:
       - pg_data:/pg_data/
