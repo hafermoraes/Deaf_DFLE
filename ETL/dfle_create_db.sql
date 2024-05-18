@@ -4,8 +4,8 @@
 --drop database if exists pns;
 --        create database pns;
 
--- conecta ao banco ~paa~
-\c paa;
+-- conecta ao banco ~dfle~
+\c dfle;
 
 -- cria schema ~lt~ para a edição 2010 das tábuas abreviadas de mortalidade (IBGE/Censo)
           create schema censo2010;
