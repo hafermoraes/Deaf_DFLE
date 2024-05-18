@@ -75,7 +75,7 @@ round( svytable( formula=~g057 + g05801, design = subset(pns2019_posterior, c008
   mutate(pct_sabe_libras = sim/(sim+nao))
 # makes sense but does not match...
 
-dfle2022_raw <- svytable(
+dfle_raw <- svytable(
   formula=~c008 + # age at interview date
     g058 +        # level of hearing impairment
     g057 +        # level of hearing impairment (despite use of hearing devices)
@@ -91,7 +91,7 @@ AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
                 ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
                 ,'70-74','75-79','80-84','85-89','90+')
 
-dfle2022_pns <- dfle2022_raw %>% 
+dfle_pns <- dfle_raw %>% 
   as.data.frame(stringsAsFactors = FALSE) %>%
   mutate(
     c008 = as.numeric(c008),
@@ -124,7 +124,7 @@ dfle2022_pns <- dfle2022_raw %>%
     diagnosed_anxiety = q11006,
   ) 
   
-summary_aux <- dfle2022_pns %>% 
+summary_aux <- dfle_pns %>% 
   filter( c008 >= 5, c008 <= 40 ) %>%
   group_by(combined, hearing_impaired, libras, diagnosed_depression) %>%
   summarise( n = sum(Freq))
@@ -159,12 +159,12 @@ summary_depr_libras %>%
   select(-1) %>%
   write_csv2( 'libras_depression_summary_table.csv')
 
-sum(dfle2022_pns$Freq)  # estimated brazilian population in 2019
+sum(dfle_pns$Freq)  # estimated brazilian population in 2019
 
 # Exploratory Data Analysis
 
 # ever diagnosed with depression by a physician (g058)
-depr_by_impairment <- dfle2022_pns %>%
+depr_by_impairment <- dfle_pns %>%
   na.omit() %>%
   group_by( hearing_impairment_level, age_grp, sex, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>%
@@ -202,7 +202,7 @@ depr_by_impairment %>%
   facet_wrap(~sex, ncol=3)
 
 # ever diagnosed with anxiety by a physician (q11006)
-anx_by_impairment <- dfle2022_pns %>%
+anx_by_impairment <- dfle_pns %>%
   na.omit() %>%
   group_by( hearing_impairment_level, age_grp, sex, diagnosed_anxiety) %>%
   summarise( n = sum( Freq ) ) %>%
@@ -280,10 +280,10 @@ prevalences %>%
   write_csv2('prevalences.csv')
 
 # "Know Libras"
-sum( subset( dfle2022_pns, g05801 == '1' )$Freq )
+sum( subset( dfle_pns, g05801 == '1' )$Freq )
 
 # relation between g057 and g058
-dfle2022_pns %>% 
+dfle_pns %>% 
   group_by( g057, g058 ) %>%
   summarise( n = sum(Freq)) %>% 
   mutate( 
@@ -293,7 +293,7 @@ dfle2022_pns %>%
     )
   ) 
 
-dfle2022_pns %>% 
+dfle_pns %>% 
   filter( g05801 == '1', c008 >= 5 & c008 <= 40 ) %>%     # only users of Libras
   na.omit() %>%
   group_by( age_grp, combined ) %>%
@@ -307,7 +307,7 @@ dfle2022_pns %>%
     pct4 = ifelse( den == 0, 0, `4` / den),
   )
 
-summary_aux <- dfle2022_pns %>% 
+summary_aux <- dfle_pns %>% 
   mutate( combined = g058) %>%
   filter( c008 >= 5, c008 <= 40, combined != ' ' ) %>%
   group_by(combined, hearing_impaired, libras, diagnosed_depression) %>%
@@ -341,7 +341,7 @@ summary_depr_libras <- summary_aux %>%
   
 # among users of Libras
 # ever diagnosed with depression by a physician (g058)
-depr_libras <- dfle2022_pns %>% 
+depr_libras <- dfle_pns %>% 
   filter( g05801 == '1', combined %in% c('2','3','4') ) %>% # only users of Libras with at least some hearing impairment
   group_by( age_grp, sex, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>% 
@@ -383,7 +383,7 @@ depr_libras %>%
 
 # among users of Libras
 # ever diagnosed with anxiety by a physician (q11006)
-anx_libras <- dfle2022_pns %>% 
+anx_libras <- dfle_pns %>% 
   filter( g05801 == '1', combined %in% c('2','3','4') ) %>% # only users of Libras with at least some hearing impairment
   group_by( age_grp, sex, diagnosed_anxiety) %>%
   summarise( n = sum( Freq ) ) %>% 
@@ -425,7 +425,7 @@ anx_libras %>%
 
 # Depression (diagnosed by a physician)
 # Comparison between users and not users of Libras
-depr_compr <- dfle2022_pns %>% 
+depr_compr <- dfle_pns %>% 
   group_by( age_grp, sex, libras, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>% 
   filter( diagnosed_depression != ' ') %>%
@@ -471,7 +471,7 @@ depr_compr %>%
 
 # Anxiety (diagnosed by a physician)
 # Comparison between users and not users of Libras
-anx_compr <- dfle2022_pns %>% 
+anx_compr <- dfle_pns %>% 
   group_by( age_grp, sex, libras, diagnosed_anxiety) %>%
   summarise( n = sum( Freq ) ) %>% 
   filter( diagnosed_anxiety != ' ') %>%
@@ -515,7 +515,7 @@ anx_compr %>%
   facet_wrap(~sex)
 
 # hearing impairment prevalence by sex and 5-year age band
-dfle2022_pns %>% 
+dfle_pns %>% 
   mutate(
     hearing_impairment_level = case_when(
       combined == '1' ~ 'none',
