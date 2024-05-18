@@ -26,6 +26,7 @@ manipulate the data frames (`tidyverse`).
 
 ```{r libraries, message=FALSE, warning=FALSE, include=TRUE}
 library(tidyverse)
+library(ggstats)
 library(DBI)
 library(survey)
 library(RPostgres)
@@ -168,7 +169,21 @@ perception](./pns_validation.png){width="70%"}
 ```{r pns_validation, include=TRUE}
 # validation against
 #   https://sidra.ibge.gov.br/tabela/7666#/n1/all/v/2667/p/all/c2/all/c12258/all/d/v2667%200/l/v,p+c2,t+c12258/resultado
-round( svytable(formula=~j001+c006, design=subset(pns2019_posterior, c008 >=18))/1e3, 0)
+round( svytable(formula=~j001+c006, design=subset(pns2019_posterior, c008 >=18))/1e3, 0) %>%
+  as.data.frame() %>%
+  mutate(
+    tab7666 = case_when(
+      j001 %in% c(1,2) ~ 1,
+      j001 == 3 ~ 2,
+      j001 %in% c(4,5) ~ 3,
+    )
+    ,tab7666 = factor( tab7666, levels = 1:3, labels = c('Muito ruim e ruim','Regular','Muito bom e bom'))
+    ,c006 = factor( c006, levels = 1:2, labels = c('Masculino', 'Feminino'))
+  ) %>%
+  na.omit() %>%
+  group_by(tab7666, c006) %>%
+  summarise( n = sum(Freq) ) %>%
+  pivot_wider(id_cols = tab7666, names_from = c006, values_from = n)
 ```
 
 ```{r pns_validation_1, include=TRUE}
@@ -186,9 +201,7 @@ same, we proceed with the analysis.
 
 # Deaf Depression-free Life Expectancy paper related analyses
 
-From this point on several exploratory data analyses will be shared.
-
-```{r pns2019_raw, include=FALSE}
+```{r dfle_data_preparation, include=TRUE}
 dfle_raw <- svytable(
   formula=~c008 + # age at interview date
     g058 +        # level of hearing impairment
@@ -199,7 +212,149 @@ dfle_raw <- svytable(
     q11006,       # ever diagnosed with anxiety by a physician
   design = pns2019_posterior,
 )
+```
 
+## Table 2: Libras users and prevalence of depression for respondents with age between 5 and 40 years, Brazil, 2019
+
+```{r dfle_table02, echo=FALSE, message=FALSE, warning=FALSE}
+summary_aux <- dfle_pns %>% 
+  filter( c008 >= 5, c008 <= 40 ) %>%
+  group_by(combined, hearing_impaired, libras, diagnosed_depression) %>%
+  summarise( n = sum(Freq))
+  
+summary_aux %>%
+  group_by(combined, hearing_impaired, libras) %>%
+  summarise( n = sum(n)) %>%
+  na.omit() %>%
+  pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>%
+  mutate( pct_libras_users = yes / (yes+no)) %>%
+  select( -c(yes,no)) %>%
+  left_join( summary_aux %>% 
+               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
+               summarise( n = sum(n)) %>%
+               na.omit() %>% 
+               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
+               mutate( pct_depression = `1` / (`1`+`2`)) %>% 
+               select( -c(3:5)) 
+             ) %>%
+  left_join( summary_aux %>% 
+               filter( libras == 'yes') %>% 
+               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
+               summarise( n = sum(n)) %>% 
+               na.omit() %>% 
+               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
+               mutate( pct_depression_among_libras_users = `1` / (`1`+`2`)) %>%
+               select( -c(3:5)) 
+             ) %>% 
+  ungroup() %>%
+  select( -combined ) %>%
+  knitr::kable()
+```
+
+## Figure 1: Depression prevalence by sex and age band among grouped levels of hearing impairment, Brazil, 2019
+
+```{r dfle_figure01, echo=FALSE, message=FALSE, warning=FALSE}
+AGE_BREAKS <- c( 0, 1, seq(from=5,to=80, by=5), 1e3)
+AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
+                ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
+                ,'70-74','75-79','80+')
+
+dfle_pns <- dfle_raw %>% 
+  as.data.frame(stringsAsFactors = FALSE) %>%
+  mutate(
+    c008 = as.numeric(c008),
+    sex = factor( c006, levels = 1:2, labels = c('male', 'female')),
+    libras = factor( g05801, levels = 1:2, labels = c('yes', 'no')),
+    age_grp = cut( 
+      c008, 
+      breaks = AGE_BREAKS,
+      labels = AGE_LABELS,
+      include.lowest = TRUE,
+      right = FALSE
+    ),
+    combined = case_when(
+      g057 == ' ' ~ g058,
+      g058 == ' ' ~ g057,
+    ),
+    hearing_impairment_level = case_when(
+      combined %in% c('3', '4') ~ 'Heavily or Fully impaired',
+      combined %in% c('1', '2') ~ 'Not or mildly impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    hearing_impaired = case_when(
+      combined == '4' ~ 'Fully impaired',
+      combined == '3' ~ 'Heavily impaired',
+      combined == '2' ~ 'Mildly impaired',
+      combined == '1' ~ 'Not impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    diagnosed_depression = q092,
+    diagnosed_anxiety = q11006,
+  ) 
+
+# ever diagnosed with depression by a physician (g058)
+depr_by_impairment <- dfle_pns %>%
+  na.omit() %>%
+  group_by( hearing_impairment_level, age_grp, sex, diagnosed_depression) %>%
+  summarise( n = sum( Freq ) ) %>%
+  filter( diagnosed_depression != ' ') %>%
+  pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %>% 
+  rename( yes = `1`, no = `2`) 
+
+depr_by_impairment <- bind_rows(
+  depr_by_impairment,
+  depr_by_impairment %>% 
+  group_by( hearing_impairment_level, age_grp) %>%
+  summarise( yes = sum(yes), no = sum(no)) %>%
+  transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
+) %>% mutate(
+    pct = ifelse( yes+no== 0, 0, yes / (yes + no))
+  ) 
+
+fig1 <- depr_by_impairment %>%
+  filter(!age_grp %in% c('<1','1-4','5-9','10-14')) %>%
+  ggplot(
+    aes(
+      x = age_grp,
+      y = pct,
+      group = sex,
+      colour = hearing_impairment_level
+    )
+  ) +
+  geom_line(
+    aes(group = age_grp),
+    size = 1,
+    color = "grey26",
+    alpha = 1
+    ) +
+  geom_point(size = 4.3, alpha = .8) +
+  geom_stripped_cols(color = "white") +
+  labs(
+    y = 'People diagnosed with depression by a physician'
+    ,x = 'Age groups'
+    ,group = ''
+    ,colour = ''
+  ) +
+  theme_bw(base_size = 13) +
+  theme(
+    panel.grid = element_blank(),
+    legend.position = 'top'
+  )+
+  facet_grid(~sex) +
+  coord_flip() +
+  scale_color_brewer(palette = "Dark2") +
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 100)
+    )
+
+fig1
+```
+
+## Table 3: Comparison by sex, age, and grouped level of hearing impairment of life expectancy and depression-free life expectancy, Brazil
+
+## Figure 2: Proportional impact of depression on life expectancy according to sex and grouped hearing impairment level, Brazil
+
+```{r dfle_figure02, echo=FALSE, message=FALSE, warning=FALSE}
 AGE_BREAKS <- c( 0, 1, seq(from=5,to=90, by=5), 1e3)
 AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
                 ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
@@ -237,46 +392,7 @@ dfle_pns <- dfle_raw %>%
     diagnosed_depression = q092,
     diagnosed_anxiety = q11006,
   ) 
-```
 
-```{r depr_libras_summary, echo=FALSE, message=FALSE, warning=FALSE}
-summary_aux <- dfle_pns %>% 
-  filter( c008 >= 5, c008 <= 40 ) %>%
-  group_by(combined, hearing_impaired, libras, diagnosed_depression) %>%
-  summarise( n = sum(Freq))
-  
-summary_aux %>%
-  group_by(combined, hearing_impaired, libras) %>%
-  summarise( n = sum(n)) %>%
-  na.omit() %>%
-  pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>%
-  mutate( pct_libras_users = yes / (yes+no)) %>%
-  select( -c(yes,no)) %>%
-  left_join( summary_aux %>% 
-               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
-               summarise( n = sum(n)) %>%
-               na.omit() %>% 
-               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
-               mutate( pct_depression = `1` / (`1`+`2`)) %>% 
-               select( -c(3:5)) 
-             ) %>%
-  left_join( summary_aux %>% 
-               filter( libras == 'yes') %>% 
-               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
-               summarise( n = sum(n)) %>% 
-               na.omit() %>% 
-               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
-               mutate( pct_depression_among_libras_users = `1` / (`1`+`2`)) %>%
-               select( -c(3:5)) 
-             ) %>% 
-  ungroup() %>%
-  select( -combined ) %>%
-  knitr::kable()
-```
-
-## Depression prevalence
-
-```{r depression_prevalence, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
 # ever diagnosed with depression by a physician (g058)
 depr_by_impairment <- dfle_pns %>%
   na.omit() %>%
@@ -296,124 +412,6 @@ depr_by_impairment <- bind_rows(
     pct = ifelse( yes+no== 0, 0, yes / (yes + no))
   ) 
 
-depr_by_impairment %>% 
-  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
-  ggplot( aes( x = age_grp, y=pct*100, group = hearing_impairment_level, colour = hearing_impairment_level)) + 
-  geom_point() + geom_line()+
-  labs(
-    y = '% of people diagnosed with depression by a physician'
-    ,x = '5-year age band'
-    ,title = 'Depression prevalence'
-    ,subtitle = 'Comparison by age band among levels of hearing impairment'
-    ,caption='Source: weighted post-stratified survey data from National Health Survey (PNS 2019/IBGE)'
-    ,group =''
-    ,colour=''
-  ) + 
-  theme(
-    legend.position = 'top'
-    ,axis.text.x = element_text(angle = 90)
-  ) + 
-  facet_wrap(~sex, ncol=3)
-```
-
-### Among users of Libras
-
-```{r depression_libras, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
-# among users of Libras
-# ever diagnosed with depression by a physician (g058)
-depr_libras <- dfle_pns %>% 
-  filter( g05801 == '1', combined %in% c('2','3','4') ) %>% # only users of Libras with at least some hearing impairment
-  group_by( age_grp, sex, diagnosed_depression) %>%
-  summarise( n = sum( Freq ) ) %>% 
-  filter( diagnosed_depression != ' ') %>%
-  pivot_wider( id_cols = c(1,2), names_from = 3, values_from = n ) %>% 
-  rename( yes = `1`, no = `2`)
-
-depr_libras <- bind_rows(
-  depr_libras,
-  depr_libras %>%
-    group_by(age_grp) %>%
-    summarise( yes = sum(yes), no = sum(no)) %>%
-    transmute( age_grp, sex = 'both', yes, no)
-  ) %>%
-  mutate( pct = ifelse( yes+no== 0, 0, yes / (yes + no)) ) 
-
-depr_libras %>% 
-  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
-  ggplot( aes( x = age_grp, 
-               y=pct*1e2, 
-               group = sex, 
-               colour = sex
-               )
-          ) + 
-  geom_point() + geom_line()+
-  labs(
-    y = '% of people diagnosed with depression by a physician'
-    ,x = '5-year age band'
-    ,title = 'Depression prevalence among users of Brazilian Sign Language'
-    ,subtitle = 'Comparison by 5-year age band and sex'
-    ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
-    ,group =''
-    ,colour=''
-  ) + 
-  theme(
-    legend.position = 'top'
-    ,axis.text.x = element_text(angle = 90)
-  ) 
-```
-
-### Comparison between users and not users of Libras
-
-```{r depression_comparison_libras, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
-# Depression (diagnosed by a physician)
-# Comparison between users and not users of Libras
-depr_compr <- dfle_pns %>% 
-  group_by( age_grp, sex, libras, diagnosed_depression) %>%
-  summarise( n = sum( Freq ) ) %>% 
-  filter( diagnosed_depression != ' ') %>%
-  pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n ) %>% 
-  rename( yes = `1`, no = `2`)
-                 
-depr_compr <- bind_rows(
-  depr_compr,
-  depr_compr %>%
-    group_by( age_grp, libras) %>%
-    summarise( yes = sum(yes), no = sum(no)) %>%
-    transmute( age_grp, sex = 'both', libras, yes, no)
-) %>%               
-  mutate( pct = ifelse( yes + no == 0, 0, yes / (yes + no)) )
-
-depr_compr %>% 
-  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
-  na.omit() %>%
-  ggplot( 
-    aes( x = age_grp, 
-               y=pct*1e2, 
-               group = libras, 
-               colour = libras
-    )
-  ) + 
-  geom_point() + 
-  geom_line()+
-  labs(
-    y = '% of people diagnosed with depression by a physician'
-    ,x = '5-year age band'
-    ,title = 'Depression prevalence'
-    ,subtitle = 'Comparison by 5-year age band, sex and knowledge of Brazilian Sign Language'
-    ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
-    ,group ='knows brazilian sign language (Libras)'
-    ,colour='knows brazilian sign language (Libras)'
-  ) + 
-  theme(
-    legend.position = 'top'
-    ,axis.text.x = element_text(angle = 90)
-  ) + 
-  facet_wrap(~sex)
-```
-
-## Anxiety prevalence
-
-```{r anxiety_prevalence, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
 # ever diagnosed with anxiety by a physician (q11006)
 anx_by_impairment <- dfle_pns %>%
   na.omit() %>%
@@ -433,178 +431,211 @@ anx_by_impairment <- bind_rows(
   pct = ifelse( yes+no== 0, 0, yes / (yes + no))
 ) 
 
-anx_by_impairment %>% 
-  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
-  ggplot( aes( x = age_grp, y=pct*100, group = hearing_impairment_level, colour = hearing_impairment_level)) + 
-  geom_point() + geom_line()+
-  labs(
-    y = '% of people diagnosed with anxiety by a physician'
-    ,x = '5-year age band'
-    #,title = 'Anxiety prevalence'
-    #,subtitle = 'Comparison by age band among levels of hearing impairment'
-    ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
-    ,group =''
-    ,colour=''
-  ) + 
-  theme(
-    legend.position = 'top'
-    ,axis.text.x = element_text(angle = 90)
+prevalences <- bind_rows(
+  depr_by_impairment %>%
+  mutate( disease = 'depression'),
+  anx_by_impairment %>%
+  mutate( disease = 'anxiety') ) 
+
+dfle <- prevalences %>% 
+  transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %>%
+  arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %>% 
+  na.omit() %>%
+  left_join(censo2010, by = c('age_grp','sex')) %>% 
+  mutate( aux = (1-pix)*Lxn ) %>% 
+  group_by(disease, sex, hearing_impairment_level) %>%
+  mutate( 
+    dfle = cumsum(aux)/lx, 
+    age_grp = factor( age_grp, levels = AGE_LABELS),
+    dfle_over_Ex = dfle / Ex
+    ) %>% 
+  select( -aux ) %>% 
+  arrange( disease, sex, hearing_impairment_level, age_grp ) 
+
+
+dfle_plot <- dfle %>% 
+  filter(disease == 'depression') %>%
+  filter(!age_grp %in% c('<1','1-4','5-9','10-14','85-89','90+')) %>% 
+  mutate(
+    age_grp = as.character(age_grp),
+    age_grp = case_when(
+      age_grp == '80-84' ~ '80+',
+      TRUE ~ as.character(age_grp)
+    ) 
+  ) %>% 
+  ggplot(
+    aes(
+    x = age_grp,
+    y = dfle_over_Ex,
+    shape = sex,
+    group = hearing_impairment_level
+    )
   ) +
-  facet_wrap(~sex, ncol=3)
+  geom_ribbon(
+    aes(
+      ymin = dfle_over_Ex, 
+      ymax = 1, 
+      fill = "Gap"
+      ),
+    alpha = .4, 
+    color = "white"
+  ) +
+  geom_hline(yintercept = 1, linetype = "dotted", color = "black") +
+  geom_point(size = .8, shape = 4, stroke = 1.5) +
+  labs(
+    y = expression("DFLE / e"[x]),
+    x = 'Age group',
+    fill = expression("Proportional impact of disease on e"[x])
+  )+
+  theme_bw(base_size = 15) +
+  theme(legend.position = "top", axis.text.x =
+  element_text(angle = 90, vjust = .5)) +
+  facet_grid(hearing_impairment_level ~ sex) +
+  scale_fill_manual(
+    name = "", 
+    values = "darkblue",
+    labels = expression("Proportional impact of depression on e"[x])
+  ) +
+  scale_y_continuous(
+    limits = c(0.7, 1),
+    labels = scales::percent_format(scale = 100)
+  )
+
+dfle_plot
+  
 ```
 
-### Among users of Libras
+## Figure 03 (Supplementary Material): Depression prevalence among users of Brazilian Sign Language by 5-year age group and sex, Brazil, 2019
 
-```{r anxiety_libras, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
+```{r dfle_figure03_suppl_material, echo=FALSE, message=FALSE, warning=FALSE}
 # among users of Libras
-# ever diagnosed with anxiety by a physician (q11006)
-anx_libras <- dfle_pns %>% 
+# ever diagnosed with depression by a physician (g058)
+depr_libras <- dfle_pns %>% 
   filter( g05801 == '1', combined %in% c('2','3','4') ) %>% # only users of Libras with at least some hearing impairment
-  group_by( age_grp, sex, diagnosed_anxiety) %>%
+  group_by( age_grp, sex, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>% 
-  filter( diagnosed_anxiety != ' ') %>%
+  filter( diagnosed_depression != ' ') %>%
   pivot_wider( id_cols = c(1,2), names_from = 3, values_from = n ) %>% 
   rename( yes = `1`, no = `2`)
 
-anx_libras <- bind_rows(
-  anx_libras,
-  anx_libras %>%
+depr_libras <- bind_rows(
+  depr_libras,
+  depr_libras %>%
     group_by(age_grp) %>%
     summarise( yes = sum(yes), no = sum(no)) %>%
     transmute( age_grp, sex = 'both', yes, no)
-) %>%
+  ) %>%
   mutate( pct = ifelse( yes+no== 0, 0, yes / (yes + no)) ) 
 
-anx_libras %>% 
-  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
-  ggplot( aes( x = age_grp, 
-               y=pct*1e2, 
-               group = sex, 
-               colour = sex
-  )
-  ) + 
-  geom_point() + geom_line()+
+fig3 <- depr_libras %>%
+  filter(!age_grp %in% c('<1','1-4','5-9','10-14','85-89','90+')) %>% 
+  mutate(
+    age_grp = as.character(age_grp),
+    age_grp = case_when(
+      age_grp == '80-84' ~ '80+',
+      TRUE ~ as.character(age_grp)
+    ) 
+  ) %>% 
+  ggplot(
+    aes(
+      x = age_grp,
+      y = pct,
+      group = sex
+      )
+  ) +
+  geom_col(fill = "darkblue", width = .8) +
+  geom_text(
+    aes(label = scales::percent(round(pct, 2))),
+    size = 3.5,
+    nudge_y = 1/15,
+    fontface = "bold",
+    show.legend = FALSE,
+    angle = 0
+  ) +
   labs(
-    y = '% of people diagnosed with anxiety by a physician'
-    ,x = '5-year age band'
-    ,title = 'Anxiety prevalence among users of Brazilian Sign Language'
-    ,subtitle = 'Comparison by 5-year age band and sex'
-    ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
-    ,group =''
-    ,colour=''
-  ) + 
+    y = 'People diagnosed with depression \n by a physician'
+    ,x = 'Age groups'
+    ,group = ''
+    ,colour = ''
+    ,fill = ''
+  )+
+  theme_bw(base_size = 14) +
   theme(
-    legend.position = 'top'
-    ,axis.text.x = element_text(angle = 90)
-  ) 
+    panel.spacing.x = unit(1.5, "lines"),
+    legend.position = 'none'
+  ) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_y_continuous(
+    limits = c(0, 1.10),
+    labels = scales::percent_format(scale = 100),
+    expand = c(0, 0)
+  )+
+  facet_wrap(~ sex) + coord_flip()
+
+fig3
 ```
 
-### Comparison between users and not users of Libras
+## Figure 04 (Supplementary Material): Depression prevalence by 5-year age group, sex and knowledge of Brazilian Sign Language
 
-```{r anxiety_comparison_libras, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
-# Anxiety (diagnosed by a physician)
+```{r dfle_figure04_suppl_material, echo=FALSE, message=FALSE, warning=FALSE}
+# Depression (diagnosed by a physician)
 # Comparison between users and not users of Libras
-anx_compr <- dfle_pns %>% 
-  group_by( age_grp, sex, libras, diagnosed_anxiety) %>%
+depr_compr <- dfle_pns %>% 
+  group_by( age_grp, sex, libras, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>% 
-  filter( diagnosed_anxiety != ' ') %>%
+  filter( diagnosed_depression != ' ') %>%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n ) %>% 
   rename( yes = `1`, no = `2`)
-
-anx_compr <- bind_rows(
-  anx_compr,
-  anx_compr %>%
+                 
+depr_compr <- bind_rows(
+  depr_compr,
+  depr_compr %>%
     group_by( age_grp, libras) %>%
     summarise( yes = sum(yes), no = sum(no)) %>%
     transmute( age_grp, sex = 'both', libras, yes, no)
 ) %>%               
   mutate( pct = ifelse( yes + no == 0, 0, yes / (yes + no)) )
 
-anx_compr %>% 
-  na.omit() %>%
-  filter( !age_grp %in% c('<1','1-4','5-9')) %>%
-  ggplot( 
-    aes( x = age_grp, 
-         y=pct*1e2, 
-         group = libras, 
-         colour = libras
-    )
-  ) + 
-  geom_point() + 
-  geom_line()+
-  labs(
-    y = '% of people diagnosed with anxiety by a physician'
-    ,x = '5-year age band'
-    ,title = 'Anxiety prevalence'
-    ,subtitle = 'Comparison by 5-year age band, sex and knowledge of Brazilian Sign Language'
-    ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
-    ,group ='knows brazilian sign language (Libras)'
-    ,colour='knows brazilian sign language (Libras)'
-  ) + 
-  theme(
-    legend.position = 'top'
-    ,axis.text.x = element_text(angle = 90)
-  ) + 
-  facet_wrap(~sex)
-```
-
-## Hearing impairment prevalence by age and sex
-
-```{r hearing_impairment, message=FALSE, warning=FALSE, echo=FALSE, fig.width=10, fig.height=5}
-# hearing impairment prevalence by sex and 5-year age band
-dfle_pns %>% 
+fig4 <- depr_compr %>%
+  filter(!age_grp %in% c('<1','1-4','5-9','10-14','85-89','90+')) %>% 
   mutate(
-    hearing_impairment_level = case_when(
-      combined == '1' ~ 'none',
-      combined == '2' ~ 'some',
-      combined == '3' ~ 'much',
-      combined == '4' ~ 'full',
-      TRUE ~ 'undisclosed'
+    age_grp = as.character(age_grp),
+    age_grp = case_when(
+      age_grp == '80-84' ~ '80+',
+      TRUE ~ as.character(age_grp)
+    ) 
+  ) %>% 
+  na.omit() %>%
+  ggplot(
+    aes(
+      x = age_grp,
+      y = pct,
+      group = libras,
+      colour = libras
     )
-  ) %>%
-  group_by( sex, age_grp, hearing_impairment_level) %>%
-  summarise(
-    n = sum( Freq )
-  ) %>% 
-  pivot_wider(
-    id_cols = 1:2,
-    names_from = 3,
-    values_from = 4
-  ) %>% 
-  mutate( 
-    den = full + much + none + some + undisclosed,
-    full = full / den,
-    much = much / den,
-    none = none / den,
-    some = some / den,
-    undisclosed = undisclosed / den
-    ) %>%
-  select( -c(undisclosed,den)) %>% 
-  pivot_longer(
-    cols = 3:6,
-    names_to = 'hearing_impairment_level',
-    values_to = 'prevalence'
-  ) %>% 
-  ggplot( 
-    aes( x = age_grp, 
-         y=prevalence*1e4, 
-         colour = hearing_impairment_level, 
-         group = hearing_impairment_level
-         )
-    ) + 
-  geom_point() + geom_line()+
+  )+
+  geom_line(
+    aes(group = age_grp),
+    size = 1,
+    color = "grey26",
+    alpha = 1
+  ) +
+  geom_point(size = 4, alpha = .8) +
+  geom_stripped_cols(color = "white") +
   labs(
-    y = 'prevalence by 10.000 people'
-    ,x = '5-year age band'
-    ,title = 'Hearing impairment prevalence'
-    ,subtitle = 'Comparison by 5-year age band among levels of hearing impairment and sex'
-    ,caption='Source: weighted survey data from National Health Survey (PNS 2019/IBGE)'
-    ,group =''
-    ,colour=''
-  ) + 
-  theme(
-    legend.position = 'top'
-    ,axis.text.x = element_text(angle = 90)
-  ) + 
-  facet_wrap(~sex, ncol=4,scales = 'free_y')
+    y = 'People diagnosed with depression by a physician'
+    ,x = 'Age groups'
+    ,group = 'Knows brazilian sign \n language (Libras)'
+    ,colour = 'Knows brazilian sign \n language (Libras)'
+  )+
+  theme_bw(base_size = 13) +
+  theme(legend.position = 'top')+
+  scale_color_brewer(palette = "Dark2") +
+  scale_y_continuous(labels =
+  scales::percent_format(scale = 100)) +
+  facet_wrap(~sex) +
+  coord_flip()
+
+fig4
 ```
+
