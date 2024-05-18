@@ -4,6 +4,6 @@ FROM rocker/tidyverse:4.2.1
 # RUN apt update -y && apt install wget unzip build-essential -y --no-install-recommends
 
 #RUN R -e "install.packages(c('srvyr','RPostgres'), repos='https://cran.rstudio.com')"
-RUN Rscript -e "install.packages(c('srvyr','RPostgres','PNSIBGE','markdown'))"
+RUN Rscript -e "install.packages(c('srvyr','RPostgres','PNSIBGE','markdown','ggstats','plyr','svglite'))"
 
 WORKDIR /home/rstudio
