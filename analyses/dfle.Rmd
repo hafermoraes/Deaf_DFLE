@@ -753,7 +753,7 @@ fig3 <- depr_libras %>%
   geom_text(
     aes(label = scales::percent(round(pct, 2))),
     size = 3.5,
-    nudge_y = 1/15,
+    nudge_y = 1.5/15,
     fontface = "bold",
     show.legend = FALSE,
     angle = 0
