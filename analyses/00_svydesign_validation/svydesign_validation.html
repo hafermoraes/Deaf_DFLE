@@ -1729,8 +1729,8 @@ the same, we proceed with the analysis.</p>
 </div>
 <div id="validation-against-official-package-pnsibge" class="section level2">
 <h2>Validation against official package <code>PNSIBGE</code></h2>
-<pre class="get_pns_data"><code>pns2019 &lt;- get_pns(year=2019)</code></pre>
-<pre class="svydesign_validation_pnsibge"><code># reconciliation against
+<pre class="r"><code>pns2019 &lt;- get_pns(year=2019)</code></pre>
+<pre class="r"><code># reconciliation against
 #   https://sidra.ibge.gov.br/tabela/7666#/n1/all/v/2667/p/all/c2/all/c12258/all/d/v2667%200/l/v,p+c2,t+c12258/resultado
 round( svytable(formula=~J001+C006, design=subset(pns2019, C008 &gt;=18))/1e3, 0) %&gt;%
   as.data.frame() %&gt;%
@@ -1745,20 +1745,31 @@ round( svytable(formula=~J001+C006, design=subset(pns2019, C008 &gt;=18))/1e3, 0
   na.omit() %&gt;%
   group_by(tab7666, C006) %&gt;%
   summarise( n = sum(Freq) ) %&gt;%
-  pivot_wider(id_cols = tab7666, names_from = C006, values_from = n)
-# # A tibble: 3 × 3
+  pivot_wider(id_cols = tab7666, names_from = C006, values_from = n)</code></pre>
+<pre><code>## `summarise()` has grouped output by &#39;tab7666&#39;. You can override using the
+## `.groups` argument.</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["tab7666"],"name":[1],"type":["fct"],"align":["left"]},{"label":["Homem"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Mulher"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"Muito ruim e ruim","2":"53296","3":"54574"},{"1":"Regular","2":"17646","3":"24349"},{"1":"Muito bom e bom","2":"3610","3":"5696"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code># # A tibble: 3 × 3
 # # Groups:   tab7666 [3]
 # tab7666             Homem Mulher
 # &lt;fct&gt;               &lt;dbl&gt;  &lt;dbl&gt;
 # 1 Muito ruim e ruim 53296  54574
 # 2 Regular           17646  24349
 # 3 Muito bom e bom    3610   5696</code></pre>
-<pre class="svydesign_validation_pnsibge_total_by_sex"><code>round( svytable(formula=~C006, design=subset(pns2019, C008 &gt;= 18))/1e3, 0)
-# C006
+<pre class="r"><code>round( svytable(formula=~C006, design=subset(pns2019, C008 &gt;= 18))/1e3, 0)</code></pre>
+<pre><code>## C006
+##  Homem Mulher 
+##  74553  84619</code></pre>
+<pre class="r"><code># C006
 # Homem Mulher 
 # 74553  84619</code></pre>
-<pre class="svydesign_validation_pnsibge_overall_total"><code>round( sum(svytable(formula=~C006, design=subset(pns2019, C008 &gt;= 18)))/1e3, 0)
-# [1] 159171</code></pre>
+<pre class="r"><code>round( sum(svytable(formula=~C006, design=subset(pns2019, C008 &gt;= 18)))/1e3, 0)</code></pre>
+<pre><code>## [1] 159171</code></pre>
+<pre class="r"><code># [1] 159171</code></pre>
 </div>
 </div>
 

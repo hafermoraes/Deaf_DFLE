@@ -38,9 +38,10 @@ library(tidyr)     # pivot_wider
 
 ```{r br_ibge_pns_2019, include=TRUE}
 # 2019th edition from National Health Survey (PNS/IBGE)
-br_ibge_pns_2019 <- read_parquet(
-  file = '/home/rstudio/data/br_ibge_pns_2019/microdata.parquet'
-) %>%
+br_ibge_pns_2019 <- 
+  read_parquet(
+    file = '/home/rstudio/data/br_ibge_pns_2019/microdata.parquet'
+  ) %>%
   mutate(across(everything(), as.numeric))
 ```
 
