@@ -1,0 +1,187 @@
+---
+title: "Figure 4 (Supplementary Material) -- Paper on Deaf Depression-free Life Expectancy"
+author: "Rafael Rodrigues de Moraes"
+date: "2024-11-10"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Packages
+
+The following packages are needed to load the datasets (`arrow` and
+`readr`), applyt the complex survey design (`survey`) to the 
+National Health Survey (PNS2019) selected microdata and
+prepare the data frames (`dplyr`, `tidyr`) for the analyses in the
+paper.
+
+```{r libraries, message=FALSE, warning=FALSE, include=TRUE}
+library(readr)     # read_delim
+library(tidyr)     # pivot_wider
+library(dplyr)     # %>%, filter, select, 
+library(ggplot2)
+```
+
+# Importing the processed datasets
+
+## [`br_ibge_censo_2010`] Abridged Life Tables from brazilian census (edition 2010)
+
+```{r br_ibge_censo_2010, include=TRUE}
+# Life tables from 2010th Brazilian Population Census (IBGE)
+br_ibge_censo_2010 <-
+  read_delim(
+    file = '/home/rstudio/data/br_ibge_censo_2010/censo2010_lifetables.csv',
+    delim = '|',
+    show_col_types = FALSE
+  )
+
+br_ibge_censo_2010 <-
+  br_ibge_censo_2010 %>%
+  pivot_wider(
+    id_cols = c('age_grp', 'sex')
+    ,names_from = 'name'
+    ,values_from = 'value'
+  ) %>%
+  mutate( across( c(lx, Lxn, Ex), as.numeric) )
+```
+
+## Importing the baseline dataset
+```{r baseline_dataset_import, include=TRUE}
+dfle_raw <-
+  readRDS(file = '/home/rstudio/data/dfle_baseline_dataset.rds')
+```
+
+## Figure 04 (Supplementary Material): Depression prevalence by 5-year age group, sex and knowledge of Brazilian Sign Language
+
+```{r dfle_figure04_suppl_material, include=TRUE}
+AGE_BREAKS <- c( 0, 1, seq(from=5,to=80, by=5), 1e3)
+AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
+                ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
+                ,'70-74','75-79','80+')
+
+dfle_pns <- 
+  dfle_raw %>% 
+  as.data.frame(stringsAsFactors = FALSE) %>%
+  mutate(
+    c008 = as.numeric(c008),
+    sex = factor( c006, levels = 1:2, labels = c('male', 'female')),
+    libras = factor( g05801, levels = 1:2, labels = c('yes', 'no')),
+    age_grp = cut( 
+      c008, 
+      breaks = AGE_BREAKS,
+      labels = AGE_LABELS,
+      include.lowest = TRUE,
+      right = FALSE
+    ),
+    combined = case_when(
+      g057 == ' ' ~ g058,
+      g058 == ' ' ~ g057
+    ),
+    hearing_impairment_level = case_when(
+      combined %in% c('3', '4') ~ 'Heavily or Fully impaired',
+      combined %in% c('1', '2') ~ 'Not or mildly impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    hearing_impaired = case_when(
+      combined == '4' ~ 'Fully impaired',
+      combined == '3' ~ 'Heavily impaired',
+      combined == '2' ~ 'Mildly impaired',
+      combined == '1' ~ 'Not impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    diagnosed_depression = q092,
+    diagnosed_anxiety = q11006,
+)
+
+# Depression (diagnosed by a physician)
+# Comparison between users and not users of Libras
+depr_compr <- dfle_pns %>% 
+  group_by( age_grp, sex, libras, diagnosed_depression) %>%
+  summarise( n = sum( Freq ) ) %>% 
+  filter( diagnosed_depression != ' ') %>%
+  pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n ) %>% 
+  rename( yes = `1`, no = `2`)
+                 
+depr_compr <- bind_rows(
+  depr_compr,
+  depr_compr %>%
+    group_by( age_grp, libras) %>%
+    summarise( yes = sum(yes), no = sum(no)) %>%
+    transmute( age_grp, sex = 'both', libras, yes, no)
+) %>%               
+  mutate( pct = ifelse( yes + no == 0, 0, yes / (yes + no)) )
+
+fig4 <- depr_compr %>%
+  filter(!age_grp %in% c('<1','1-4','5-9','10-14','85-89','90+')) %>% 
+  mutate(
+    age_grp = as.character(age_grp),
+    age_grp = case_when(
+      age_grp == '80-84' ~ '80+',
+      TRUE ~ as.character(age_grp)
+    ) 
+  ) %>% 
+  na.omit() %>%
+  ggplot(
+    aes(
+      x = age_grp,
+      y = pct,
+      group = libras,
+      colour = libras
+    )
+  )+
+  geom_line(
+    aes(group = age_grp),
+    size = 1,
+    color = "grey26",
+    alpha = 1
+  ) +
+  geom_point(size = 4, alpha = .8) +
+  geom_stripped_cols(color = "white") +
+  labs(
+    y = 'People diagnosed with depression by a physician'
+    ,x = 'Age groups'
+    ,group = 'Knows brazilian sign \n language (Libras)'
+    ,colour = 'Knows brazilian sign \n language (Libras)'
+  )+
+  theme_bw(base_size = 13) +
+  theme(
+    legend.position = 'top',
+    panel.grid = element_blank()
+  )+
+  scale_color_brewer(palette = "Dark2") +
+  scale_y_continuous(labels =
+  scales::percent_format(scale = 100)) +
+  facet_wrap(~sex) +
+  coord_flip()
+
+ggsave(
+  filename = 'fig04.png',
+  plot = fig4,
+  width = 7,
+  height = 5
+)
+
+ggsave(
+  filename = 'fig04.pdf',
+  plot = fig4,
+  width = 7,
+  height = 5
+)
+
+ggsave(
+  filename = 'fig04.svg',
+  plot = fig4,
+  width = 7,
+  height = 5
+)
+
+
+fig4
+```
