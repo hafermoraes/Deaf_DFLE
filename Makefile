@@ -7,28 +7,31 @@ image_name=deaf_dfle
 
 all: help
 
-etl: ## Extract, transform and load data sources for analyses
-	# National Health Survey (PNS/2019)
+data: ## Extract, transform and load data sources for analyses
+	# National Health Survey 2019 (br_ibge_pns_2019)
 	docker run -it --rm \
 		--volume /tmp/:/tmp/ \
 		--volume $(etl)/:/etl/ \
 		--user ${uid}:${gid} \
 		$(etl_docker_image) \
 		sh -c "cd /etl/br_ibge_pns_2019 && sh etl.sh"
-	# Abridged Life Tables from Brazilian Census (Edition 2010)
+	# Abridged Life Tables from 2010 Census (br_ibge_censo_2010)
 	docker run -it --rm \
 		--volume /tmp/:/tmp/ \
 		--volume $(etl)/:/etl/ \
 		--user ${uid}:${gid} \
 		$(etl_docker_image) \
 		sh -c "cd /etl/br_ibge_censo_2010 && sh etl.sh"
-	# Brazilian 2019 Abridged Life Tables from Human Life Table Database (MPIDR)
+	# Abridged Life Tables from 2019 (de_mpidr_hld)
 	docker run -it --rm \
 		--volume /tmp/:/tmp/ \
 		--volume $(etl)/:/etl/ \
 		--user ${uid}:${gid} \
 		$(etl_docker_image) \
-		sh -c "cd /etl/de_mpidr/ && sh etl.sh"
+		sh -c "cd /etl/de_mpidr_hld && sh etl.sh"
+	# populate repo with processed data
+	mkdir -p data/
+	mv /tmp/etl/* data/
 
 build: ## build Rstudio container when all sources are processed
 	docker buildx build -t ${image_name} -f ${HOME}/git/Deaf_DFLE/docker/Dockerfile /
