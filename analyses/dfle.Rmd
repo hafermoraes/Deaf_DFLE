@@ -1,7 +1,7 @@
 ---
-title: "Support analysis for paper on Deaf Depression-free Life Expectancy"
+title: "Support analyses for paper on Deaf Depression-free Life Expectancy"
 author: "Rafael Rodrigues de Moraes"
-date: "2024-05-18"
+date: "2024-11-10"
 output:
   html_document:
     df_print: paged
@@ -11,7 +11,7 @@ editor_options:
 ---
 
 This RMarkdown notebook serves as the official documentation of the
-steps undertaken to produce the data and graphics that will show up on
+steps undertaken to produce the data and graphics available on
 the Deaf Depression-free Life Expectancy paper.
 
 ```{r setup, include=FALSE}
@@ -20,73 +20,30 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # R Packages
 
-Basic packages were used to connect to databases (`DBI` and
-`RPostgres`), configure the complex survey schema (`survey`) and
-manipulate the data frames (`tidyverse`).
+The following packages are needed to load the datasets (`arrow` and
+`readr`), applyt the complex survey design (`survey`) to the 
+National Health Survey (PNS2019) selected microdata and
+prepare the data frames (`dplyr`, `tidyr`) for the analyses in the
+paper.
 
 ```{r libraries, message=FALSE, warning=FALSE, include=TRUE}
 library(tidyverse)
-library(ggstats)
-library(svglite)
-library(DBI)
-library(survey)
-library(RPostgres)
+library(ggstats)   # 
+library(svglite)   # save plots to SVG via ggsave
+library(arrow)     # read_parquet
+library(survey)    # svydesign, postStratify, svytable
 ```
 
-# Connection to database
+# Importing the processed datasets
 
-One of the containers hosts the `Postgres 14.0` database where all the
-data from Census and National Health Survey lie.
+## Abridged Life Tables from brazilian census (edition 2010)
 
-```{r db}
-# Connect to database 'pns'
-conn <- dbConnect(
-  RPostgres::Postgres(),
-  dbname = Sys.getenv("PG_DB"),
-  host = Sys.getenv("PG_HOST"),
-  port = Sys.getenv("PG_PORT"),
-  user = Sys.getenv("PG_USER"),
-  password = Sys.getenv("PG_PASSWORD")
-)
-```
-
-## Queries
-
-The following two SQL-queries were used to retrieve only the necessary
-data from each table.
-
-### Life table functions from Census
-
-From all functions of the life table produced at the 2010th edition of
-the Brazilian Population Census, only the functions $l_x$, $_nL_x$ and
-$e_x$ are needed for this paper.
-
-```{verbatim, lang='sql'}
--- Abbreviated Life Tables
--- Brazilian Population Census 2010 (IBGE/Censo)
--- Source (accessed on September 7th, 2022):
---  ftp://ftp.ibge.gov.br/Tabuas_Abreviadas_de_Mortalidade/2010/tabelas_xls.zip
-
- select age_grp,   -- 5-year age
-        sex,       -- both, male and female
-        name,      -- life table functions
-        value
-   from censo2010.lifetables
-  where name in ('lx', 'Lxn', 'Ex')
-      ;
-```
-
-```{r qry_censo, include=TRUE}
+```{r lt2010, include=TRUE}
 # Life tables from 2010th Brazilian Population Census (IBGE)
-censo2010_qry <- dbGetQuery( conn, statement = readr::read_file('qry_censo.sql') )
-
-censo2010 <- censo2010_qry %>%
-  pivot_wider(
-    id_cols = c('age_grp', 'sex')
-    ,names_from = 'name'
-    ,values_from = 'value'
-  ) %>%
-  mutate( across( c(lx, Lxn, Ex), as.numeric) )
+censo2010 <-
+  read_delim(
+    file = /home/rstudio/data/br_ibge_censo_2010/data
+  )
 ```
 
 ### PNS Survey

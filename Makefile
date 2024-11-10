@@ -31,8 +31,16 @@ data: ## Extract, transform and load data sources for analyses
 		$(etl_docker_image) \
 		sh -c "cd /etl/de_mpidr_hld && sh etl.sh"
 	# populate repo with processed data
-	mkdir -p data/
-	mv /tmp/etl/* data/
+	# Abridged Life Tables from Brazilian Census 2010 (br-ibge-censo-2010)
+	mkdir -p data/br_ibge_censo_2010
+	mv /tmp/etl/br_ibge_censo_2010/data/* data/br_ibge_censo_2010/
+	# National Health Service (br-ibge-pns-2019)
+	mkdir -p data/br_ibge_pns_2019
+	mv /tmp/etl/br_ibge_pns_2019/variables_dictionary.txt data/br_ibge_pns_2019/
+	mv /tmp/etl/br_ibge_pns_2019/parquet/* data/br_ibge_pns_2019/
+	# Abridged Life Tables from Max Planck's Human Lifetable Database (de-mpidr-hld)
+	mkdir -p data/de_mpidr_hld
+	mv /tmp/etl/de_mpidr_hld/data/* data/de_mpidr_hld/
 
 build: ## build Rstudio container when all sources are processed
 	@docker buildx build \
@@ -42,6 +50,7 @@ build: ## build Rstudio container when all sources are processed
 	@docker run -it --rm \
 		--detach \
 		--volume ${repo}/analyses/:/home/rstudio/analyses/ \
+		--volume ${repo}/data/:/home/rstudio/data/ \
 		--publish 8787:8787 \
 		--name deaf_dfle_rr \
 		--env DISABLE_AUTH=true \
