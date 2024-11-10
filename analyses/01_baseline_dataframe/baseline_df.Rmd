@@ -89,9 +89,8 @@ dfle_raw <- svytable(
 ```
 
 ```{r dfle_baseline_export, include=TRUE}
-dfle_raw %>%
-  write_delim(
-    file = '/home/rstudio/data/dfle_baseline_dataset.csv',
-    delim = '|'
-  )
+saveRDS(
+  dfle_raw, 
+  file = '/home/rstudio/data/dfle_baseline_dataset.rds'
+)
 ```

@@ -31,12 +31,7 @@ library(dplyr)     # %>%, filter, select,
 # Importing the baseline dataset
 ```{r baseline_dataset_import, include=TRUE}
 dfle_raw <-
-  read_delim(
-    file = '/home/rstudio/data/dfle_baseline_dataset.csv',
-    delim = '|',
-    show_col_types = FALSE,
-    col_types = cols(.default = "c")
-  )
+  readRDS(file = '/home/rstudio/data/dfle_baseline_dataset.rds')
 ```
 
 # Table 2: Libras users and prevalence of depression for respondents with age between 5 and 40 years, Brazil, 2019
@@ -49,7 +44,6 @@ AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
 
 dfle_pns <- dfle_raw %>% 
   mutate(
-    Freq = as.numeric(Freq),
     c008 = as.numeric(c008),
     sex = factor( c006, levels = 1:2, labels = c('male', 'female')),
     libras = factor( g05801, levels = 1:2, labels = c('yes', 'no')),

@@ -1643,12 +1643,7 @@ library(dplyr)     # %&gt;%, filter, select, </code></pre>
 <div id="importing-the-baseline-dataset" class="section level1">
 <h1>Importing the baseline dataset</h1>
 <pre class="r"><code>dfle_raw &lt;-
-  read_delim(
-    file = &#39;/home/rstudio/data/dfle_baseline_dataset.csv&#39;,
-    delim = &#39;|&#39;,
-    show_col_types = FALSE,
-    col_types = cols(.default = &quot;c&quot;)
-  )</code></pre>
+  readRDS(file = &#39;/home/rstudio/data/dfle_baseline_dataset.rds&#39;)</code></pre>
 </div>
 <div id="table-2-libras-users-and-prevalence-of-depression-for-respondents-with-age-between-5-and-40-years-brazil-2019" class="section level1">
 <h1>Table 2: Libras users and prevalence of depression for respondents
@@ -1660,7 +1655,6 @@ AGE_LABELS &lt;- c(&#39;&lt;1&#39;,&#39;1-4&#39;,&#39;5-9&#39;,&#39;10-14&#39;,&
 
 dfle_pns &lt;- dfle_raw %&gt;% 
   mutate(
-    Freq = as.numeric(Freq),
     c008 = as.numeric(c008),
     sex = factor( c006, levels = 1:2, labels = c(&#39;male&#39;, &#39;female&#39;)),
     libras = factor( g05801, levels = 1:2, labels = c(&#39;yes&#39;, &#39;no&#39;)),
