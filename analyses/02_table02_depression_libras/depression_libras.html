@@ -1642,50 +1642,13 @@ library(dplyr)     # %&gt;%, filter, select, </code></pre>
 </div>
 <div id="importing-the-baseline-dataset" class="section level1">
 <h1>Importing the baseline dataset</h1>
-<pre class="r"><code>dfle_raw &lt;-
+<pre class="r"><code>dfle_pns &lt;-
   readRDS(file = &#39;/home/rstudio/data/dfle_baseline_dataset.rds&#39;)</code></pre>
 </div>
 <div id="table-2-libras-users-and-prevalence-of-depression-for-respondents-with-age-between-5-and-40-years-brazil-2019" class="section level1">
 <h1>Table 2: Libras users and prevalence of depression for respondents
 with age between 5 and 40 years, Brazil, 2019</h1>
-<pre class="r"><code>AGE_BREAKS &lt;- c( 0, 1, seq(from=5,to=80, by=5), 1e3)
-AGE_LABELS &lt;- c(&#39;&lt;1&#39;,&#39;1-4&#39;,&#39;5-9&#39;,&#39;10-14&#39;,&#39;15-19&#39;,&#39;20-24&#39;,&#39;25-29&#39;,&#39;30-34&#39;
-                ,&#39;35-39&#39;,&#39;40-44&#39;,&#39;45-49&#39;,&#39;50-54&#39;,&#39;55-59&#39;,&#39;60-64&#39;,&#39;65-69&#39;
-                ,&#39;70-74&#39;,&#39;75-79&#39;,&#39;80+&#39;)
-
-dfle_pns &lt;- dfle_raw %&gt;% 
-  mutate(
-    c008 = as.numeric(c008),
-    sex = factor( c006, levels = 1:2, labels = c(&#39;male&#39;, &#39;female&#39;)),
-    libras = factor( g05801, levels = 1:2, labels = c(&#39;yes&#39;, &#39;no&#39;)),
-    age_grp = cut( 
-      c008, 
-      breaks = AGE_BREAKS,
-      labels = AGE_LABELS,
-      include.lowest = TRUE,
-      right = FALSE
-    ),
-    combined = case_when(
-      g057 == &#39; &#39; ~ g058,
-      g058 == &#39; &#39; ~ g057
-    ),
-    hearing_impairment_level = case_when(
-      combined %in% c(&#39;3&#39;, &#39;4&#39;) ~ &#39;Heavily or Fully impaired&#39;,
-      combined %in% c(&#39;1&#39;, &#39;2&#39;) ~ &#39;Not or mildly impaired&#39;,
-      # TRUE ~ &#39;Ignored or missing information&#39;
-    ),
-    hearing_impaired = case_when(
-      combined == &#39;4&#39; ~ &#39;Fully impaired&#39;,
-      combined == &#39;3&#39; ~ &#39;Heavily impaired&#39;,
-      combined == &#39;2&#39; ~ &#39;Mildly impaired&#39;,
-      combined == &#39;1&#39; ~ &#39;Not impaired&#39;,
-      # TRUE ~ &#39;Ignored or missing information&#39;
-    ),
-    diagnosed_depression = q092,
-    diagnosed_anxiety = q11006,
-  ) 
-
-summary_aux &lt;- dfle_pns %&gt;% 
+<pre class="r"><code>summary_aux &lt;- dfle_pns %&gt;% 
   filter( c008 &gt;= 5, c008 &lt;= 40 ) %&gt;%
   group_by(combined, hearing_impaired, libras, diagnosed_depression) %&gt;%
   summarise( n = sum(Freq))</code></pre>

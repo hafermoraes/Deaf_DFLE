@@ -84,13 +84,51 @@ dfle_raw <- svytable(
     q092 +        # ever diagnosed with depression by a physician
     q11006,       # ever diagnosed with anxiety by a physician
   design = pns2019_posterior
-) %>%
-  as.data.frame(stringsAsFactors = FALSE)
+)
+
+AGE_BREAKS <- c( 0, 1, seq(from=5,to=80, by=5), 1e3)
+AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
+                ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
+                ,'70-74','75-79','80+')
+
+dfle_pns <- 
+  dfle_raw %>% 
+  as.data.frame(stringsAsFactors = FALSE) %>%
+  mutate(
+    c008 = as.numeric(c008),
+    sex = factor( c006, levels = 1:2, labels = c('male', 'female')),
+    libras = factor( g05801, levels = 1:2, labels = c('yes', 'no')),
+    age_grp = cut( 
+      c008, 
+      breaks = AGE_BREAKS,
+      labels = AGE_LABELS,
+      include.lowest = TRUE,
+      right = FALSE
+    ),
+    combined = case_when(
+      g057 == ' ' ~ g058,
+      g058 == ' ' ~ g057
+    ),
+    hearing_impairment_level = case_when(
+      combined %in% c('3', '4') ~ 'Heavily or Fully impaired',
+      combined %in% c('1', '2') ~ 'Not or mildly impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    hearing_impaired = case_when(
+      combined == '4' ~ 'Fully impaired',
+      combined == '3' ~ 'Heavily impaired',
+      combined == '2' ~ 'Mildly impaired',
+      combined == '1' ~ 'Not impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    diagnosed_depression = q092,
+    diagnosed_anxiety = q11006,
+) 
 ```
 
 ```{r dfle_baseline_export, include=TRUE}
 saveRDS(
-  dfle_raw, 
+  dfle_pns, 
   file = '/home/rstudio/data/dfle_baseline_dataset.rds'
 )
 ```
