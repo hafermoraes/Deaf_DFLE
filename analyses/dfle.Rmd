@@ -36,50 +36,26 @@ library(survey)    # svydesign, postStratify, svytable
 
 # Importing the processed datasets
 
-## Abridged Life Tables from brazilian census (edition 2010)
+## [`br_ibge_censo_2010`] Abridged Life Tables from brazilian census (edition 2010)
 
-```{r lt2010, include=TRUE}
+```{r br_ibge_censo_2010, include=TRUE}
 # Life tables from 2010th Brazilian Population Census (IBGE)
-censo2010 <-
+br_igbe_censo_2010 <-
   read_delim(
-    file = /home/rstudio/data/br_ibge_censo_2010/data
+    file = '/home/rstudio/data/br_ibge_censo_2010/censo2010_lifetables.csv',
+    delim = '|',
+    show_col_types = FALSE
   )
 ```
 
-### PNS Survey
+## [`br_ibge_pns_2019`] National Health Survey 2019
 
-```{verbatim, lang='sql'}
--- National Health Survey (PNS/IBGE)
--- Questionnaire (accessed on September 7th, 2022): 
---   https://www.pns.icict.fiocruz.br/wp-content/uploads/2021/02/Questionario-PNS-2019.pdf
-
- select -- survey design variables
-        upa_pns, v0024, 
-        v0028, v00281, v00282, v00283,    -- chosen respondent answers in the name of all persons of household
-        -- v0029, v00291, v00292, v00293, -- answers from chosen respondent only
-        -- v0030, v00301, v00302, v00303, -- answers from anthropometric questionaire
-        -- variables for analyses
-        j001,   -- health_perception (for validation purposes only...)
-        c006,   -- sex
-        c008,   -- age
-        q092,   -- ever diagnosed with depression by a physician
-        q11006, -- ever diagnosed with anxiety by a physician
-        g058,   -- hearing impairment level
-        g057,   -- hearing impairment level even using hearning devices
-        g05801  -- knowdledge of Libras, the brazilian sign language
-   from pns2019.microdata 
-  where v0028 ~ '\d+' -- (weight variable) v0028 not empty
-    and v0015 = '01'  -- only effective and successful interviews
-      ;
-```
-
-```{r qry_pns2019, include=TRUE}
+```{r br_ibge_pns_2019, include=TRUE}
 # 2019th edition from National Health Survey (PNS/IBGE)
-pns2019_qry <- dbGetQuery( conn, statement = readr::read_file('qry_pns.sql') )
-pns2019_qry <- pns2019_qry %>%
-  mutate(
-    across( c(upa_pns,v0024,v0028,v00281,v00282,v00283,c008), as.numeric) 
-  ) 
+br_ibge_pns_2019 <- read_parquet(
+  file = '/home/rstudio/data/br_ibge_pns_2019/microdata.parquet'
+) %>%
+  mutate(across(everything(), as.numeric))
 ```
 
 # Complex Survey Design
@@ -99,14 +75,14 @@ options(survey.adjust.domain.lonely=TRUE)
 pns2019_prior <- survey::svydesign(
   ids = ~upa_pns, 
   strata = ~v0024, 
-  data = subset(pns2019_qry, !is.na(v0028)), 
+  data = subset(br_ibge_pns_2019, !is.na(v0028)), 
   weights = ~v0028, 
   nest = TRUE
 )
 # Post-stratification
 popc.types <- data.frame( 
-  v00283=as.character(unique(pns2019_qry$v00283)), 
-  Freq=as.numeric(unique(pns2019_qry$v00282))
+  v00283=as.character(unique(br_ibge_pns_2019$v00283)), 
+  Freq=as.numeric(unique(br_ibge_pns_2019$v00282))
 )
 popc.types <- popc.types[order(popc.types$v00283),]
 pns2019_posterior <- survey::postStratify(
@@ -456,7 +432,7 @@ dfle <- prevalences %>%
   transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %>%
   arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %>% 
   na.omit() %>%
-  left_join(censo2010, by = c('age_grp','sex')) %>% 
+  left_join(br_ibge_censo_2010, by = c('age_grp','sex')) %>% 
   mutate( aux = (1-pix)*Lxn ) %>% 
   group_by(disease, sex, hearing_impairment_level) %>%
   mutate( 
@@ -580,7 +556,7 @@ dfle <- prevalences %>%
   transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %>%
   arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %>% 
   na.omit() %>%
-  left_join(censo2010, by = c('age_grp','sex')) %>% 
+  left_join(br_ibge_censo_2010, by = c('age_grp','sex')) %>% 
   mutate( aux = (1-pix)*Lxn ) %>% 
   group_by(disease, sex, hearing_impairment_level) %>%
   mutate( 
