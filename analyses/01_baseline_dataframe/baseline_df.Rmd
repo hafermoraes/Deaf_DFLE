@@ -32,10 +32,10 @@ library(survey)    # svydesign, postStratify, svytable
 
 ```{r br_ibge_pns_2019, include=TRUE}
 # 2019th edition from National Health Survey (PNS/IBGE)
-br_ibge_pns_2019 <- read_parquet(
-  file = '/home/rstudio/data/br_ibge_pns_2019/microdata.parquet'
-) %>%
-  mutate(across(everything(), as.numeric))
+br_ibge_pns_2019 <- 
+  read_parquet(
+    file = '/home/rstudio/data/br_ibge_pns_2019/microdata.parquet'
+  ) %>% mutate_at(c('v0028','v00282','v00283'), as.numeric)
 ```
 
 # Complex Survey Design
@@ -83,7 +83,7 @@ dfle_raw <- svytable(
     g05801 +      # use of LIBRAS, the Brazilian sign language
     q092 +        # ever diagnosed with depression by a physician
     q11006,       # ever diagnosed with anxiety by a physician
-  design = pns2019_posterior,
+  design = pns2019_posterior
 ) %>%
   as.data.frame(stringsAsFactors = FALSE)
 ```
