@@ -1,0 +1,39 @@
+
+
+
+* Reproducible scripts for the paper on the Depression Free Life Expectancy for the Hearing Impaired
+
+** Building upon data already in the repository
+
+*** Step 1: clone this github repository
+
+#+begin_src sh
+git clone git@github.com:hafermoraes/Deaf_DFLE.git
+#+end_src
+
+*** Step 2: run RStudio via docker
+
+#+begin_src sh
+docker run -it --rm \
+       --publish 8787:8787 \
+       --volume ./analyses/.Rprofile:/home/rstudio/.Rprofile \
+       --volume ./analyses/:/home/rstudio/analyses/ \
+       --volume ./data/:/home/rstudio/data/ \
+       --name deaf_dfle_rr \
+       --env DISABLE_AUTH=true \
+       rocker/tidyverse:4.4.1
+#+end_src
+
+access https://localhost:8787/
+
+** Fetching data from internet 
+
+#+begin_src sh
+make fetch_data
+#+end_src
+
+#+begin_src sh
+make build
+#+end_src
+
+and https://localhost:8787/
