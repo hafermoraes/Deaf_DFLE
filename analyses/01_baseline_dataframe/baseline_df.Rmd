@@ -1,0 +1,95 @@
+---
+title: "Baseline Dataset for paper on Deaf Depression-free Life Expectancy"
+author: "Rafael Rodrigues de Moraes"
+date: "2024-11-10"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Packages
+
+The following packages are needed to load the datasets (`arrow` and
+`readr`), applyt the complex survey design (`survey`) to the 
+National Health Survey (PNS2019) selected microdata and
+prepare the data frames (`dplyr`, `tidyr`) for the analyses in the
+paper.
+
+```{r packages, message=FALSE, warning=FALSE, include=TRUE}
+library(tidyverse)
+library(arrow)     # read_parquet
+library(survey)    # svydesign, postStratify, svytable
+```
+
+# [`br_ibge_pns_2019`] Importing the processed National Health Survey 2019 dataset
+
+```{r br_ibge_pns_2019, include=TRUE}
+# 2019th edition from National Health Survey (PNS/IBGE)
+br_ibge_pns_2019 <- 
+  read_parquet(
+    file = '/home/rstudio/data/br_ibge_pns_2019/microdata.parquet'
+  ) %>% mutate_at(c('v0028','v00282','v00283'), as.numeric)
+```
+
+# Complex Survey Design
+
+The National Health Survey (PNS) is a complex survey consisting of
+strata, cluster and weights.
+
+The same steps were followed in order to set up the survey design object
+and post-stratify it as listed in the official R package `PNSIBGE`
+(version 0.1.7).
+
+```{r pns_survey_design, include=TRUE}
+## Survey design (source: https://rdrr.io/cran/PNSIBGE/src/R/pns_design.R, accessed on September, 2nd 2022)
+options(survey.lonely.psu="adjust")
+options(survey.adjust.domain.lonely=TRUE)
+
+pns2019_prior <- survey::svydesign(
+  ids = ~upa_pns, 
+  strata = ~v0024, 
+  data = subset(br_ibge_pns_2019, !is.na(v0028)), 
+  weights = ~v0028, 
+  nest = TRUE
+)
+# Post-stratification
+popc.types <- data.frame( 
+  v00283=as.character(unique(br_ibge_pns_2019$v00283)), 
+  Freq=as.numeric(unique(br_ibge_pns_2019$v00282))
+)
+popc.types <- popc.types[order(popc.types$v00283),]
+pns2019_posterior <- survey::postStratify(
+  design=pns2019_prior, 
+  strata=~v00283, 
+  population=popc.types
+)
+```
+
+# Baseline Dataset for Deaf Depression-free Life Expectancy Paper
+
+```{r dfle_baseline_preparation, include=TRUE}
+dfle_raw <- svytable(
+  formula=~c008 + # age at interview date
+    g058 +        # level of hearing impairment
+    g057 +        # level of hearing impairment (despite use of hearing devices)
+    c006 +        # sex 
+    g05801 +      # use of LIBRAS, the Brazilian sign language
+    q092 +        # ever diagnosed with depression by a physician
+    q11006,       # ever diagnosed with anxiety by a physician
+  design = pns2019_posterior
+)
+```
+
+```{r dfle_baseline_export, include=TRUE}
+saveRDS(
+  dfle_raw, 
+  file = '/home/rstudio/data/dfle_baseline_dataset.rds'
+)
+```

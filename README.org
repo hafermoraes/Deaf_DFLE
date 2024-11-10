@@ -1,90 +1,39 @@
 
-* Reproducible analysis
 
-  These are the instructions for reproducing the statistical and demographical analysis regarding the paper exploring the depression-free life expectancy of brazilian deaf adults according to National Health Survey (PNS 2019) and IBGE life tables.
 
-  The work was done in a GNU/Linux machine but due to =docker= it should be possible to reproduce the results in other OS.
-  
-  #+begin_src shell :exports both :results verbatim
-  cat /etc/os-release
-  #+end_src
+* Reproducible scripts for the paper on the Depression Free Life Expectancy for the Hearing Impaired
 
-  #+RESULTS:
-  #+begin_example
-  NAME="Linux Mint"
-  VERSION="21 (Vanessa)"
-  ID=linuxmint
-  ID_LIKE="ubuntu debian"
-  PRETTY_NAME="Linux Mint 21"
-  VERSION_ID="21"
-  HOME_URL="https://www.linuxmint.com/"
-  SUPPORT_URL="https://forums.linuxmint.com/"
-  BUG_REPORT_URL="http://linuxmint-troubleshooting-guide.readthedocs.io/en/latest/"
-  PRIVACY_POLICY_URL="https://www.linuxmint.com/"
-  VERSION_CODENAME=vanessa
-  UBUNTU_CODENAME=jammy
-  #+end_example
+** Building upon data already in the repository
 
-* Overview of the ETL process
-  
-  #+CAPTION: ETL for the Depression-Free Life Expectancy for Deaf paper
-  #+NAME:   fig:ETL_DFLE
-  [[./imgs/plan.drawio.png]]
-  
-* Minimal required software
+*** Step 1: clone this github repository
 
-  Install =wget=, =unzip= and =docker=
+#+begin_src sh
+git clone git@github.com:hafermoraes/Deaf_DFLE.git
+#+end_src
 
-  #+begin_example
-  sudo apt install wget unzip docker*
-  #+end_example
+*** Step 2: run RStudio via docker
 
-  and configure =docker=
+#+begin_src sh
+docker run -it --rm \
+       --publish 8787:8787 \
+       --volume ./analyses/.Rprofile:/home/rstudio/.Rprofile \
+       --volume ./analyses/:/home/rstudio/analyses/ \
+       --volume ./data/:/home/rstudio/data/ \
+       --name deaf_dfle_rr \
+       --env DISABLE_AUTH=true \
+       rocker/tidyverse:4.4.1
+#+end_src
 
-  #+begin_example
-  sudo usermod -a -G docker $USER ; newgrp docker
-  #+end_example
+access https://localhost:8787/
 
-* Login credentials for RStudio and PGAdmin4
+** Fetching data from internet 
 
-  Adjust accordingly the environment variables at =.env= case needed
+#+begin_src sh
+make fetch_data
+#+end_src
 
-  #+begin_example
-  # Environment variables
+#+begin_src sh
+make build
+#+end_src
 
-  # ETL container
-  ETL_USER=rstudio
-  ETL_PASS=dfle
-
-  # RStudio container
-  RSTD_USER=rstudio
-  RSTD_PASS=dfle
-
-  # PostgreSQL container
-  PG_DB=pns
-  PG_HOST=db
-  PG_USER=postgres
-  PG_PASSWORD=12345
-  PG_PORT=5432
-
-  # PGAdmin container
-  PGAD_EMAIL=dfle@dfle.com
-  PGAD_PASS=dfle
-  PGAD_PORT=5050
-  #+end_example
-
-* Setup for analysis
-
-  In the terminal, type
-  
-  #+begin_example
-  docker-compose up --force-recreate --build
-  #+end_example
-
-  Open the web-browser and access
-  - http://localhost:8787/ for RStudio or
-  - http://localhost:5050/ for PGAdmin4
-
-  All scripts in the =analyses/= folder are shared between the host OS and the RStudio container.
-
-  Note further that all GNU R packages needed for the statistical analysis are provided by the RStudio container to ensure reproducibility of results.
+and https://localhost:8787/

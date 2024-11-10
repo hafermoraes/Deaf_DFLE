@@ -1,0 +1,144 @@
+#+property: header-args:sh  :tangle ./etl.sh
+
+manually tangle to =etl.sh= file with =C-c C-v t=  (=org-babel-tangle=)
+
+#+begin_src sh
+#!/bin/bash
+
+# shell script configs
+set -eu
+
+echo "=life_tables= preparation scripts for de-mpidr-hld\n"
+#+end_src
+
+
+#+begin_src sh
+# url where 2019th edition of brazilian life tables are located
+lt_url=https://www.lifetable.de/File/GetDocument/data/BRA/BRA000020192019CU1.txt
+
+# source and directories where raw and processed data are to be stored
+src_dir=/tmp/etl/de_mpidr_hld
+raw_data=${src_dir}/raw
+proc_data=${src_dir}/data
+#+end_src
+
+
+#+begin_src sh
+create_temporary_directories(){
+
+    echo "Creating temporary directory for raw data at $raw_data..."
+    rm -rf ${raw_data}
+    mkdir -p ${raw_data}
+
+    echo "DONE.\nCreating temporary directory for processed data at $proc_data..."
+    rm -rf ${proc_data}
+    mkdir -p ${proc_data}
+
+    echo "DONE."
+}
+#+end_src
+
+
+#+begin_src sh
+fetch_life_tables(){
+
+    echo "Fetching the =life-tables= from $lt_url..."
+    R --quiet --vanilla -e "curl::curl_download( '${lt_url}', '${raw_data}/lt2019.txt' )"
+
+}
+#+end_src
+
+
+#+begin_src R :tangle ./gnur_parse_life_tables.R
+## ./gnur_parse_life_tables.R
+library(dplyr) # %>%, select, filter, rename, transmute
+library(readr) # read_delim, write_delim
+library(tidyr) # pivot_longer
+
+## TODO
+## directories
+tmp_dir <- '/tmp/etl/de_mpidr_hld/'
+raw_dir <- paste0(tmp_dir, 'raw/')
+proc_dir <- paste0(tmp_dir, 'data/')
+
+lt2019_raw <-
+  read_delim(
+  file = paste0(raw_dir, 'lt2019.txt'),
+  delim = ','
+)
+
+lt2019 <-
+  lt2019_raw %>%
+  select(10, 11, 12, 13, 15, 16, 18, 19, 20) %>%
+  rename(type=1, sex=2, age_inf=3, age_sup=4, qx=5, lx=6, Lx=7, Tx=8, ex=9) %>%
+  mutate(across(everything(), as.numeric)) %>%
+  filter(type==2) %>%
+  rowwise() %>%
+  mutate(
+    sex = case_when( sex == 1 ~ 'male', TRUE ~ 'female'),
+    age = paste0(age_inf, '-', age_sup)
+  ) %>% 
+  transmute(age, sex, year = 2019,qx, lx, Lx, Tx, ex) %>%
+  pivot_longer(
+    cols = -c(age, sex, year),
+    names_to = 'name',
+    values_to = 'value'
+  )
+
+
+
+## Write to disk (csv file for database ingestion)
+lt2019 %>% 
+    write_delim(
+        file = paste0(proc_dir, 'br2019_lifetables.csv'),
+        delim = '|',
+        col_names = TRUE
+    )
+#+end_src
+
+
+#+begin_src sh
+parse_life_tables_using_GNU_R(){
+
+    echo 'Parsing the life tables using GNU R'
+    R CMD BATCH --quiet --vanilla ./gnur_parse_life_tables.R
+    rm *.Rout
+
+    echo 'DONE.'
+}
+#+end_src
+
+
+#+begin_src sh
+remove_temporary_steps(){
+
+    echo "Removing the temporary intermediate files"
+    rm -rf ${raw_data}
+    echo "DONE."
+}
+#+end_src
+
+
+
+#+begin_src sh
+main(){
+
+    create_temporary_directories
+
+    fetch_life_tables
+
+    parse_life_tables_using_GNU_R
+
+    remove_temporary_steps
+
+}
+
+main
+
+exit 0
+#+end_src
+
+
+# Local Variables:
+# eval: (add-hook 'after-save-hook (lambda () (org-babel-tangle) ))
+# End:

@@ -1,0 +1,215 @@
+---
+title: "Figure 2 -- Paper on Deaf Depression-free Life Expectancy"
+author: "Rafael Rodrigues de Moraes"
+date: "2024-11-10"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Packages
+
+The following packages are needed to load the datasets (`arrow` and
+`readr`), applyt the complex survey design (`survey`) to the 
+National Health Survey (PNS2019) selected microdata and
+prepare the data frames (`dplyr`, `tidyr`) for the analyses in the
+paper.
+
+```{r libraries, message=FALSE, warning=FALSE, include=TRUE}
+library(readr)     # read_delim
+library(tidyr)     # pivot_wider
+library(dplyr)     # %>%, filter, select, 
+library(ggplot2)
+```
+
+# Importing the processed datasets
+
+## [`br_ibge_censo_2010`] Abridged Life Tables from brazilian census (edition 2010)
+
+```{r br_ibge_censo_2010, include=TRUE}
+# Life tables from 2010th Brazilian Population Census (IBGE)
+br_ibge_censo_2010 <-
+  read_delim(
+    file = '/home/rstudio/data/br_ibge_censo_2010/censo2010_lifetables.csv',
+    delim = '|',
+    show_col_types = FALSE
+  )
+
+br_ibge_censo_2010 <-
+  br_ibge_censo_2010 %>%
+  pivot_wider(
+    id_cols = c('age_grp', 'sex')
+    ,names_from = 'name'
+    ,values_from = 'value'
+  ) %>%
+  mutate( across( c(lx, Lxn, Ex), as.numeric) )
+```
+
+## Importing the baseline dataset
+```{r baseline_dataset_import, include=TRUE}
+dfle_raw <-
+  readRDS(file = '/home/rstudio/data/dfle_baseline_dataset.rds')
+```
+
+## Figure 2: Proportional impact of depression on life expectancy according to sex and grouped hearing impairment level, Brazil
+
+```{r dfle_figure02, include=TRUE}
+AGE_BREAKS <- c( 0, 1, seq(from=5,to=90, by=5), 1e3)
+AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
+                ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
+                ,'70-74','75-79','80-84','85-89','90+')
+
+dfle_pns <- dfle_raw %>% 
+  as.data.frame(stringsAsFactors = FALSE) %>%
+  mutate(
+    c008 = as.numeric(c008),
+    sex = factor( c006, levels = 1:2, labels = c('male', 'female')),
+    libras = factor( g05801, levels = 1:2, labels = c('yes', 'no')),
+    age_grp = cut( 
+      c008, 
+      breaks = AGE_BREAKS,
+      labels = AGE_LABELS,
+      include.lowest = TRUE,
+      right = FALSE
+    ),
+    combined = case_when(
+      g057 == ' ' ~ g058,
+      g058 == ' ' ~ g057,
+    ),
+    hearing_impairment_level = case_when(
+      combined %in% c('3', '4') ~ 'Heavily or Fully impaired',
+      combined %in% c('1', '2') ~ 'Not or mildly impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    hearing_impaired = case_when(
+      combined == '4' ~ 'Fully impaired',
+      combined == '3' ~ 'Heavily impaired',
+      combined == '2' ~ 'Mildly impaired',
+      combined == '1' ~ 'Not impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    diagnosed_depression = q092,
+    diagnosed_anxiety = q11006,
+  ) 
+
+# ever diagnosed with depression by a physician (g058)
+depr_by_impairment <- dfle_pns %>%
+  na.omit() %>%
+  group_by( hearing_impairment_level, age_grp, sex, diagnosed_depression) %>%
+  summarise( n = sum( Freq ) ) %>%
+  filter( diagnosed_depression != ' ') %>%
+  pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %>% 
+  rename( yes = `1`, no = `2`) 
+
+depr_by_impairment <- bind_rows(
+  depr_by_impairment,
+  depr_by_impairment %>% 
+  group_by( hearing_impairment_level, age_grp) %>%
+  summarise( yes = sum(yes), no = sum(no)) %>%
+  transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
+) %>% mutate(
+    pct = ifelse( yes+no== 0, 0, yes / (yes + no))
+  ) 
+
+prevalences <- bind_rows(
+  depr_by_impairment %>%
+  mutate( disease = 'depression')
+  ) 
+
+dfle <- prevalences %>% 
+  transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %>%
+  arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %>% 
+  na.omit() %>%
+  left_join(br_ibge_censo_2010, by = c('age_grp','sex')) %>% 
+  mutate( aux = (1-pix)*Lxn ) %>% 
+  group_by(disease, sex, hearing_impairment_level) %>%
+  mutate( 
+    dfle = cumsum(aux)/lx, 
+    age_grp = factor( age_grp, levels = AGE_LABELS),
+    dfle_over_Ex = dfle / Ex
+    ) %>% 
+  select( -aux ) %>% 
+  arrange( disease, sex, hearing_impairment_level, age_grp ) 
+
+
+fig2 <- dfle %>% 
+  filter(disease == 'depression') %>%
+  filter(!age_grp %in% c('<1','1-4','5-9','10-14','85-89','90+')) %>% 
+  mutate(
+    age_grp = as.character(age_grp),
+    age_grp = case_when(
+      age_grp == '80-84' ~ '80+',
+      TRUE ~ as.character(age_grp)
+    ) 
+  ) %>% 
+  ggplot(
+    aes(
+    x = age_grp,
+    y = dfle_over_Ex,
+    shape = sex,
+    group = hearing_impairment_level
+    )
+  ) +
+  geom_ribbon(
+    aes(
+      ymin = dfle_over_Ex, 
+      ymax = 1, 
+      fill = "Gap"
+      ),
+    alpha = .4, 
+    color = "white"
+  ) +
+  geom_hline(yintercept = 1, linetype = "dotted", color = "black") +
+  geom_point(size = .8, shape = 4, stroke = 1.5) +
+  labs(
+    y = expression("DFLE / e"[x]),
+    x = 'Age group',
+    fill = expression("Proportional impact of disease on e"[x])
+  )+
+  theme_bw(base_size = 15) +
+  theme(
+    legend.position = "top", 
+    axis.text.x = element_text(angle = 90, vjust = .5),
+    panel.grid = element_blank()
+    ) +
+  facet_grid(hearing_impairment_level ~ sex) +
+  scale_fill_manual(
+    name = "", 
+    values = "darkblue",
+    labels = expression("Proportional impact of depression on e"[x])
+  ) +
+  scale_y_continuous(
+    limits = c(0.7, 1),
+    labels = scales::percent_format(scale = 100)
+  )
+
+ggsave(
+  filename = 'fig02.png',
+  plot = fig2,
+  width = 10,
+  height = 8
+)
+
+ggsave(
+  filename = 'fig02.pdf',
+  plot = fig2,
+  width = 10,
+  height = 8
+)
+
+ggsave(
+  filename = 'fig02.svg',
+  plot = fig2,
+  width = 10,
+  height = 8
+)
+
+fig2
+```

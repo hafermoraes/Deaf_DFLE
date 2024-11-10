@@ -1,0 +1,165 @@
+---
+title: "Survey Design Validation -- Deaf Depression-free Life Expectancy Paper"
+author: "Rafael Rodrigues de Moraes"
+date: "2024-11-10"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Packages
+
+The following packages are needed to load the datasets (`arrow` and
+`readr`), applyt the complex survey design (`survey`) to the 
+National Health Survey (PNS2019) selected microdata and
+prepare the data frames (`dplyr`, `tidyr`) for the analyses in the
+paper.
+
+```{r libraries, message=FALSE, warning=FALSE, include=TRUE}
+library(tidyverse)
+library(arrow)     # read_parquet
+library(survey)    # svydesign, postStratify, svytable
+library(PNSIBGE)   # get_pns
+library(dplyr)     # mutate, group_by, summarise, %>%
+library(tidyr)     # pivot_wider
+
+```
+
+# Importing the processed datasets
+
+## [`br_ibge_pns_2019`] National Health Survey 2019
+
+```{r br_ibge_pns_2019, include=TRUE}
+# 2019th edition from National Health Survey (PNS/IBGE)
+br_ibge_pns_2019 <- 
+  read_parquet(
+    file = '/home/rstudio/data/br_ibge_pns_2019/microdata.parquet'
+  ) %>%
+  mutate(across(everything(), as.numeric))
+```
+
+# Complex Survey Design
+
+The National Health Survey (PNS) is a complex survey consisting of
+strata, cluster and weights.
+
+The same steps were followed in order to set up the survey design object
+and post-stratify it as listed in the official R package `PNSIBGE`
+(version 0.1.7).
+
+```{r pns_survey_design, include=TRUE}
+## Survey design (source: https://rdrr.io/cran/PNSIBGE/src/R/pns_design.R, accessed on September, 2nd 2022)
+options(survey.lonely.psu="adjust")
+options(survey.adjust.domain.lonely=TRUE)
+
+pns2019_prior <- survey::svydesign(
+  ids = ~upa_pns, 
+  strata = ~v0024, 
+  data = subset(br_ibge_pns_2019, !is.na(v0028)), 
+  weights = ~v0028, 
+  nest = TRUE
+)
+# Post-stratification
+popc.types <- data.frame( 
+  v00283=as.character(unique(br_ibge_pns_2019$v00283)), 
+  Freq=as.numeric(unique(br_ibge_pns_2019$v00282))
+)
+popc.types <- popc.types[order(popc.types$v00283),]
+pns2019_posterior <- survey::postStratify(
+  design=pns2019_prior, 
+  strata=~v00283, 
+  population=popc.types
+)
+```
+
+## Validation against processed microdata
+
+Despite using exactly the same complex survey design, a full match with
+the government official statistics was not entirely possible.
+
+![PNS2019 - Validation with self-reported health
+perception](./pns_validation.png){width="70%"}
+
+```{r pns_validation, include=TRUE}
+# validation against
+#   https://sidra.ibge.gov.br/tabela/7666#/n1/all/v/2667/p/all/c2/all/c12258/all/d/v2667%200/l/v,p+c2,t+c12258/resultado
+round( svytable(formula=~j001+c006, design=subset(pns2019_posterior, c008 >=18))/1e3, 0) %>%
+  as.data.frame() %>%
+  mutate(
+    tab7666 = case_when(
+      j001 %in% c(1,2) ~ 1,
+      j001 == 3 ~ 2,
+      j001 %in% c(4,5) ~ 3,
+    )
+    ,tab7666 = factor( tab7666, levels = 1:3, labels = c('Muito ruim e ruim','Regular','Muito bom e bom'))
+    ,c006 = factor( c006, levels = 1:2, labels = c('Masculino', 'Feminino'))
+  ) %>%
+  na.omit() %>%
+  group_by(tab7666, c006) %>%
+  summarise( n = sum(Freq) ) %>%
+  pivot_wider(id_cols = tab7666, names_from = c006, values_from = n)
+```
+
+```{r pns_validation_1, include=TRUE}
+round( svytable(formula=~c006, design=subset(pns2019_posterior, c008 >= 18))/1e3, 0)
+```
+
+```{r pns_validation_2, include=TRUE}
+round( sum(svytable(formula=~c006, design=subset(pns2019_posterior, c008 >= 18)))/1e3, 0)
+```
+
+*Conclusion:* although overall total and totals by sex are OK, among
+health perception the numbers do not match. Unfortunately it was not
+possible to reconcile the differences but as the total figures are the
+same, we proceed with the analysis.
+
+## Validation against official package `PNSIBGE`
+
+```{r get_pns_data, include=TRUE}
+pns2019 <- get_pns(year=2019)
+```
+
+```{r svydesign_validation_pnsibge, include=TRUE}
+# reconciliation against
+#   https://sidra.ibge.gov.br/tabela/7666#/n1/all/v/2667/p/all/c2/all/c12258/all/d/v2667%200/l/v,p+c2,t+c12258/resultado
+round( svytable(formula=~J001+C006, design=subset(pns2019, C008 >=18))/1e3, 0) %>%
+  as.data.frame() %>%
+  mutate(
+    tab7666 = case_when(
+      grepl('bom',J001, ignore.case = TRUE) ~ 1,
+      J001 == 'Regular' ~ 2,
+      grepl('ruim',J001, ignore.case = TRUE) ~ 3,
+    )
+    ,tab7666 = factor( tab7666, levels = 1:3, labels = c('Muito ruim e ruim','Regular','Muito bom e bom'))
+  ) %>%
+  na.omit() %>%
+  group_by(tab7666, C006) %>%
+  summarise( n = sum(Freq) ) %>%
+  pivot_wider(id_cols = tab7666, names_from = C006, values_from = n)
+# # A tibble: 3 × 3
+# # Groups:   tab7666 [3]
+# tab7666             Homem Mulher
+# <fct>               <dbl>  <dbl>
+# 1 Muito ruim e ruim 53296  54574
+# 2 Regular           17646  24349
+# 3 Muito bom e bom    3610   5696
+```
+
+```{r svydesign_validation_pnsibge_total_by_sex, include=TRUE}
+round( svytable(formula=~C006, design=subset(pns2019, C008 >= 18))/1e3, 0)
+# C006
+# Homem Mulher 
+# 74553  84619
+```
+
+```{r svydesign_validation_pnsibge_overall_total, include=TRUE}
+round( sum(svytable(formula=~C006, design=subset(pns2019, C008 >= 18)))/1e3, 0)
+# [1] 159171
+```
