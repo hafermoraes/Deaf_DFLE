@@ -8,7 +8,7 @@ image_name=deaf_dfle
 
 all: help
 
-data: ## Extract, transform and load data sources for analyses
+fetch_data: ## Extract, transform and load data sources for analyses
 	# National Health Survey 2019 (br_ibge_pns_2019)
 	docker run -it --rm \
 		--volume /tmp/:/tmp/ \
