@@ -1,0 +1,116 @@
+---
+title: "Table2 -- Paper on Deaf Depression-free Life Expectancy"
+author: "Rafael Rodrigues de Moraes"
+date: "2024-11-10"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Packages
+
+The following packages are needed to load the datasets (`arrow` and
+`readr`), applyt the complex survey design (`survey`) to the 
+National Health Survey (PNS2019) selected microdata and
+prepare the data frames (`dplyr`, `tidyr`) for the analyses in the
+paper.
+
+```{r libraries, message=FALSE, warning=FALSE, include=TRUE}
+library(readr)     # read_delim
+library(tidyr)     # pivot_wider
+library(dplyr)     # %>%, filter, select, 
+```
+
+# Importing the baseline dataset
+```{r baseline_dataset_import, include=TRUE}
+dfle_raw <-
+  read_delim(
+    file = '/home/rstudio/data/dfle_baseline_dataset.csv',
+    delim = '|',
+    show_col_types = FALSE,
+    col_types = cols(.default = "c")
+  )
+```
+
+# Table 2: Libras users and prevalence of depression for respondents with age between 5 and 40 years, Brazil, 2019
+
+```{r dfle_table02, include=TRUE}
+AGE_BREAKS <- c( 0, 1, seq(from=5,to=80, by=5), 1e3)
+AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
+                ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
+                ,'70-74','75-79','80+')
+
+dfle_pns <- dfle_raw %>% 
+  mutate(
+    Freq = as.numeric(Freq),
+    c008 = as.numeric(c008),
+    sex = factor( c006, levels = 1:2, labels = c('male', 'female')),
+    libras = factor( g05801, levels = 1:2, labels = c('yes', 'no')),
+    age_grp = cut( 
+      c008, 
+      breaks = AGE_BREAKS,
+      labels = AGE_LABELS,
+      include.lowest = TRUE,
+      right = FALSE
+    ),
+    combined = case_when(
+      g057 == ' ' ~ g058,
+      g058 == ' ' ~ g057
+    ),
+    hearing_impairment_level = case_when(
+      combined %in% c('3', '4') ~ 'Heavily or Fully impaired',
+      combined %in% c('1', '2') ~ 'Not or mildly impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    hearing_impaired = case_when(
+      combined == '4' ~ 'Fully impaired',
+      combined == '3' ~ 'Heavily impaired',
+      combined == '2' ~ 'Mildly impaired',
+      combined == '1' ~ 'Not impaired',
+      # TRUE ~ 'Ignored or missing information'
+    ),
+    diagnosed_depression = q092,
+    diagnosed_anxiety = q11006,
+  ) 
+
+summary_aux <- dfle_pns %>% 
+  filter( c008 >= 5, c008 <= 40 ) %>%
+  group_by(combined, hearing_impaired, libras, diagnosed_depression) %>%
+  summarise( n = sum(Freq))
+  
+summary_aux %>%
+  group_by(combined, hearing_impaired, libras) %>%
+  summarise( n = sum(n)) %>%
+  na.omit() %>% 
+  pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>%
+  mutate( pct_libras_users = yes / (yes+no)) %>% 
+  select( -c(yes,no)) %>%
+  left_join( summary_aux %>% 
+               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
+               summarise( n = sum(n)) %>%
+               na.omit() %>% 
+               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
+               mutate( pct_depression = `1` / (`1`+`2`)) %>% 
+               select( -c(3:5)) 
+             ) %>%
+  left_join( summary_aux %>% 
+               filter( libras == 'yes') %>% 
+               group_by(combined, hearing_impaired, diagnosed_depression) %>% 
+               summarise( n = sum(n)) %>% 
+               na.omit() %>% 
+               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
+               mutate( pct_depression_among_libras_users = `1` / (`1`+`2`)) %>%
+               select( -c(3:5)) 
+             ) %>% 
+  ungroup() %>%
+  select( -combined ) %>%
+  knitr::kable()
+```
+
