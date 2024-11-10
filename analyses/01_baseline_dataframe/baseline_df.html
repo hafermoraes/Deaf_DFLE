@@ -1690,13 +1690,11 @@ pns2019_posterior &lt;- survey::postStratify(
     q092 +        # ever diagnosed with depression by a physician
     q11006,       # ever diagnosed with anxiety by a physician
   design = pns2019_posterior
-) %&gt;%
-  as.data.frame(stringsAsFactors = FALSE)</code></pre>
-<pre class="r"><code>dfle_raw %&gt;%
-  write_delim(
-    file = &#39;/home/rstudio/data/dfle_baseline_dataset.csv&#39;,
-    delim = &#39;|&#39;
-  )</code></pre>
+)</code></pre>
+<pre class="r"><code>saveRDS(
+  dfle_raw, 
+  file = &#39;/home/rstudio/data/dfle_baseline_dataset.rds&#39;
+)</code></pre>
 </div>
 
 

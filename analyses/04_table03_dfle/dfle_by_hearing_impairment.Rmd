@@ -1,5 +1,5 @@
 ---
-title: "Figure01 -- Paper on Deaf Depression-free Life Expectancy"
+title: "Table3 -- Paper on Deaf Depression-free Life Expectancy"
 author: "Rafael Rodrigues de Moraes"
 date: "2024-11-10"
 output:
@@ -26,26 +26,46 @@ paper.
 library(readr)     # read_delim
 library(tidyr)     # pivot_wider
 library(dplyr)     # %>%, filter, select, 
-library(ggplot2)   # geom_point, ggplot
-library(ggstats)   # geom_stripped_cols
 ```
 
-# Importing the baseline dataset
+# Importing the processed datasets
+
+## [`br_ibge_censo_2010`] Abridged Life Tables from brazilian census (edition 2010)
+
+```{r br_ibge_censo_2010, include=TRUE}
+# Life tables from 2010th Brazilian Population Census (IBGE)
+br_ibge_censo_2010 <-
+  read_delim(
+    file = '/home/rstudio/data/br_ibge_censo_2010/censo2010_lifetables.csv',
+    delim = '|',
+    show_col_types = FALSE
+  )
+
+br_ibge_censo_2010 <-
+  br_ibge_censo_2010 %>%
+  pivot_wider(
+    id_cols = c('age_grp', 'sex')
+    ,names_from = 'name'
+    ,values_from = 'value'
+  ) %>%
+  mutate( across( c(lx, Lxn, Ex), as.numeric) )
+```
+
+## Importing the baseline dataset
 ```{r baseline_dataset_import, include=TRUE}
 dfle_raw <-
   readRDS(file = '/home/rstudio/data/dfle_baseline_dataset.rds')
 ```
 
-## Figure 1: Depression prevalence by sex and age band among grouped levels of hearing impairment, Brazil, 2019
+# Table 3: Comparison by sex, age, and grouped level of hearing impairment of life expectancy and depression-free life expectancy, Brazil
 
-```{r dfle_figure01, include=TRUE}
-AGE_BREAKS <- c( 0, 1, seq(from=5,to=80, by=5), 1e3)
+```{r dfle_table03, include=TRUE}
+AGE_BREAKS <- c( 0, 1, seq(from=5,to=90, by=5), 1e3)
 AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
                 ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
-                ,'70-74','75-79','80+')
+                ,'70-74','75-79','80-84','85-89','90+')
 
-dfle_pns <- 
-  dfle_raw %>% 
+dfle_pns <- dfle_raw %>% 
   as.data.frame(stringsAsFactors = FALSE) %>%
   mutate(
     c008 = as.numeric(c008),
@@ -60,7 +80,7 @@ dfle_pns <-
     ),
     combined = case_when(
       g057 == ' ' ~ g058,
-      g058 == ' ' ~ g057
+      g058 == ' ' ~ g057,
     ),
     hearing_impairment_level = case_when(
       combined %in% c('3', '4') ~ 'Heavily or Fully impaired',
@@ -76,7 +96,7 @@ dfle_pns <-
     ),
     diagnosed_depression = q092,
     diagnosed_anxiety = q11006,
-)
+  ) 
 
 # ever diagnosed with depression by a physician (g058)
 depr_by_impairment <- dfle_pns %>%
@@ -97,63 +117,47 @@ depr_by_impairment <- bind_rows(
     pct = ifelse( yes+no== 0, 0, yes / (yes + no))
   ) 
 
-fig1 <- depr_by_impairment %>%
-  filter(!age_grp %in% c('<1','1-4','5-9','10-14')) %>%
-  ggplot(
-    aes(
-      x = age_grp,
-      y = pct,
-      group = sex,
-      colour = hearing_impairment_level
+prevalences <- 
+  bind_rows(
+    depr_by_impairment %>%
+    mutate( disease = 'depression')
+  ) 
+
+dfle <- 
+  prevalences %>% 
+  transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %>%
+  arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %>% 
+  na.omit() %>% 
+  left_join(br_ibge_censo_2010, by = c('age_grp','sex')) %>% 
+  mutate( aux = (1-pix)*Lxn ) %>% 
+  group_by(disease, sex, hearing_impairment_level) %>%
+  mutate( 
+    dfle = cumsum(aux)/lx, 
+    age_grp = factor( age_grp, levels = AGE_LABELS),
+    dfle_over_Ex = dfle / Ex
+    ) %>% 
+  select( -aux ) %>% 
+  arrange( disease, sex, hearing_impairment_level, age_grp ) 
+
+dfle %>% 
+  filter(
+    disease == 'depression',
+    age_grp %in% c('<1', '20-24', '40-44','60-64','80-84')
+  ) %>%
+  mutate(
+    age = case_when(
+      age_grp == '<1' ~ 0,
+      age_grp == '20-24' ~ 20,
+      age_grp == '40-44' ~ 40,
+      age_grp == '60-64' ~ 60,
+      age_grp == '80-84' ~ 80,
     )
-  ) +
-  geom_line(
-    aes(group = age_grp),
-    size = 1,
-    color = "grey26",
-    alpha = 1
-    ) +
-  geom_point(size = 4.3, alpha = .8) +
-  geom_stripped_cols(color = "white") +
-  labs(
-    y = 'People diagnosed with depression by a physician'
-    ,x = 'Age groups'
-    ,group = ''
-    ,colour = ''
-  ) +
-  theme_bw(base_size = 13) +
-  theme(
-    panel.grid = element_blank(),
-    legend.position = 'top'
-  )+
-  facet_grid(~sex) +
-  coord_flip() +
-  scale_color_brewer(palette = "Dark2") +
-  scale_y_continuous(
-    labels = scales::percent_format(scale = 100)
-    )
-
-ggsave(
-  filename = 'fig01.png',
-  plot = fig1,
-  width = 7,
-  height = 5
-)
-
-ggsave(
-  filename = 'fig01.pdf',
-  plot = fig1,
-  width = 7,
-  height = 5
-)
-
-ggsave(
-  filename = 'fig01.svg',
-  plot = fig1,
-  width = 7,
-  height = 5
-)
-
-fig1
+  ) %>%
+  pivot_wider(
+    id_cols = c('sex', 'age', 'Ex'),
+    names_from = 'hearing_impairment_level',
+    values_from = 'dfle'
+  ) %>%
+  select( 1,2,3,5,4) %>%
+  knitr::kable()
 ```
-

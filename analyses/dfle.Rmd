@@ -40,12 +40,18 @@ library(survey)    # svydesign, postStratify, svytable
 
 ```{r br_ibge_censo_2010, include=TRUE}
 # Life tables from 2010th Brazilian Population Census (IBGE)
-br_igbe_censo_2010 <-
+br_ibge_censo_2010 <-
   read_delim(
     file = '/home/rstudio/data/br_ibge_censo_2010/censo2010_lifetables.csv',
     delim = '|',
     show_col_types = FALSE
-  )
+  ) %>%
+  pivot_wider(
+    id_cols = c('age_grp', 'sex')
+    ,names_from = 'name'
+    ,values_from = 'value'
+  ) %>%
+  mutate( across( c(lx, Lxn, Ex), as.numeric) )
 ```
 
 ## [`br_ibge_pns_2019`] National Health Survey 2019
