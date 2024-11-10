@@ -13,7 +13,7 @@
 
 <meta name="date" content="2024-11-10" />
 
-<title>Table2 – Paper on Deaf Depression-free Life Expectancy</title>
+<title>Baseline Dataset for paper on Deaf Depression-free Life Expectancy</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1621,8 +1621,8 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Table2 – Paper on Deaf Depression-free Life
-Expectancy</h1>
+<h1 class="title toc-ignore">Baseline Dataset for paper on Deaf
+Depression-free Life Expectancy</h1>
 <h4 class="author">Rafael Rodrigues de Moraes</h4>
 <h4 class="date">2024-11-10</h4>
 
@@ -1636,144 +1636,67 @@ Expectancy</h1>
 design (<code>survey</code>) to the National Health Survey (PNS2019)
 selected microdata and prepare the data frames (<code>dplyr</code>,
 <code>tidyr</code>) for the analyses in the paper.</p>
-<pre class="r"><code>library(readr)     # read_delim
-library(tidyr)     # pivot_wider
-library(dplyr)     # %&gt;%, filter, select, </code></pre>
+<pre class="r"><code>library(tidyverse)
+library(arrow)     # read_parquet
+library(survey)    # svydesign, postStratify, svytable</code></pre>
 </div>
-<div id="importing-the-baseline-dataset" class="section level1">
-<h1>Importing the baseline dataset</h1>
-<pre class="r"><code>dfle_raw &lt;-
-  read_delim(
+<div id="br_ibge_pns_2019-importing-the-processed-national-health-survey-2019-dataset" class="section level1">
+<h1>[<code>br_ibge_pns_2019</code>] Importing the processed National
+Health Survey 2019 dataset</h1>
+<pre class="r"><code># 2019th edition from National Health Survey (PNS/IBGE)
+br_ibge_pns_2019 &lt;- 
+  read_parquet(
+    file = &#39;/home/rstudio/data/br_ibge_pns_2019/microdata.parquet&#39;
+  ) %&gt;% mutate_at(c(&#39;v0028&#39;,&#39;v00282&#39;,&#39;v00283&#39;), as.numeric)</code></pre>
+</div>
+<div id="complex-survey-design" class="section level1">
+<h1>Complex Survey Design</h1>
+<p>The National Health Survey (PNS) is a complex survey consisting of
+strata, cluster and weights.</p>
+<p>The same steps were followed in order to set up the survey design
+object and post-stratify it as listed in the official R package
+<code>PNSIBGE</code> (version 0.1.7).</p>
+<pre class="r"><code>## Survey design (source: https://rdrr.io/cran/PNSIBGE/src/R/pns_design.R, accessed on September, 2nd 2022)
+options(survey.lonely.psu=&quot;adjust&quot;)
+options(survey.adjust.domain.lonely=TRUE)
+
+pns2019_prior &lt;- survey::svydesign(
+  ids = ~upa_pns, 
+  strata = ~v0024, 
+  data = subset(br_ibge_pns_2019, !is.na(v0028)), 
+  weights = ~v0028, 
+  nest = TRUE
+)
+# Post-stratification
+popc.types &lt;- data.frame( 
+  v00283=as.character(unique(br_ibge_pns_2019$v00283)), 
+  Freq=as.numeric(unique(br_ibge_pns_2019$v00282))
+)
+popc.types &lt;- popc.types[order(popc.types$v00283),]
+pns2019_posterior &lt;- survey::postStratify(
+  design=pns2019_prior, 
+  strata=~v00283, 
+  population=popc.types
+)</code></pre>
+</div>
+<div id="baseline-dataset-for-deaf-depression-free-life-expectancy-paper" class="section level1">
+<h1>Baseline Dataset for Deaf Depression-free Life Expectancy Paper</h1>
+<pre class="r"><code>dfle_raw &lt;- svytable(
+  formula=~c008 + # age at interview date
+    g058 +        # level of hearing impairment
+    g057 +        # level of hearing impairment (despite use of hearing devices)
+    c006 +        # sex 
+    g05801 +      # use of LIBRAS, the Brazilian sign language
+    q092 +        # ever diagnosed with depression by a physician
+    q11006,       # ever diagnosed with anxiety by a physician
+  design = pns2019_posterior
+) %&gt;%
+  as.data.frame(stringsAsFactors = FALSE)</code></pre>
+<pre class="r"><code>dfle_raw %&gt;%
+  write_delim(
     file = &#39;/home/rstudio/data/dfle_baseline_dataset.csv&#39;,
-    delim = &#39;|&#39;,
-    show_col_types = FALSE,
-    col_types = cols(.default = &quot;c&quot;)
+    delim = &#39;|&#39;
   )</code></pre>
-</div>
-<div id="table-2-libras-users-and-prevalence-of-depression-for-respondents-with-age-between-5-and-40-years-brazil-2019" class="section level1">
-<h1>Table 2: Libras users and prevalence of depression for respondents
-with age between 5 and 40 years, Brazil, 2019</h1>
-<pre class="r"><code>AGE_BREAKS &lt;- c( 0, 1, seq(from=5,to=80, by=5), 1e3)
-AGE_LABELS &lt;- c(&#39;&lt;1&#39;,&#39;1-4&#39;,&#39;5-9&#39;,&#39;10-14&#39;,&#39;15-19&#39;,&#39;20-24&#39;,&#39;25-29&#39;,&#39;30-34&#39;
-                ,&#39;35-39&#39;,&#39;40-44&#39;,&#39;45-49&#39;,&#39;50-54&#39;,&#39;55-59&#39;,&#39;60-64&#39;,&#39;65-69&#39;
-                ,&#39;70-74&#39;,&#39;75-79&#39;,&#39;80+&#39;)
-
-dfle_pns &lt;- dfle_raw %&gt;% 
-  mutate(
-    Freq = as.numeric(Freq),
-    c008 = as.numeric(c008),
-    sex = factor( c006, levels = 1:2, labels = c(&#39;male&#39;, &#39;female&#39;)),
-    libras = factor( g05801, levels = 1:2, labels = c(&#39;yes&#39;, &#39;no&#39;)),
-    age_grp = cut( 
-      c008, 
-      breaks = AGE_BREAKS,
-      labels = AGE_LABELS,
-      include.lowest = TRUE,
-      right = FALSE
-    ),
-    combined = case_when(
-      g057 == &#39; &#39; ~ g058,
-      g058 == &#39; &#39; ~ g057
-    ),
-    hearing_impairment_level = case_when(
-      combined %in% c(&#39;3&#39;, &#39;4&#39;) ~ &#39;Heavily or Fully impaired&#39;,
-      combined %in% c(&#39;1&#39;, &#39;2&#39;) ~ &#39;Not or mildly impaired&#39;,
-      # TRUE ~ &#39;Ignored or missing information&#39;
-    ),
-    hearing_impaired = case_when(
-      combined == &#39;4&#39; ~ &#39;Fully impaired&#39;,
-      combined == &#39;3&#39; ~ &#39;Heavily impaired&#39;,
-      combined == &#39;2&#39; ~ &#39;Mildly impaired&#39;,
-      combined == &#39;1&#39; ~ &#39;Not impaired&#39;,
-      # TRUE ~ &#39;Ignored or missing information&#39;
-    ),
-    diagnosed_depression = q092,
-    diagnosed_anxiety = q11006,
-  ) 
-
-summary_aux &lt;- dfle_pns %&gt;% 
-  filter( c008 &gt;= 5, c008 &lt;= 40 ) %&gt;%
-  group_by(combined, hearing_impaired, libras, diagnosed_depression) %&gt;%
-  summarise( n = sum(Freq))</code></pre>
-<pre><code>## `summarise()` has grouped output by &#39;combined&#39;, &#39;hearing_impaired&#39;, &#39;libras&#39;.
-## You can override using the `.groups` argument.</code></pre>
-<pre class="r"><code>summary_aux %&gt;%
-  group_by(combined, hearing_impaired, libras) %&gt;%
-  summarise( n = sum(n)) %&gt;%
-  na.omit() %&gt;% 
-  pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %&gt;%
-  mutate( pct_libras_users = yes / (yes+no)) %&gt;% 
-  select( -c(yes,no)) %&gt;%
-  left_join( summary_aux %&gt;% 
-               group_by(combined, hearing_impaired, diagnosed_depression) %&gt;% 
-               summarise( n = sum(n)) %&gt;%
-               na.omit() %&gt;% 
-               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %&gt;% 
-               mutate( pct_depression = `1` / (`1`+`2`)) %&gt;% 
-               select( -c(3:5)) 
-             ) %&gt;%
-  left_join( summary_aux %&gt;% 
-               filter( libras == &#39;yes&#39;) %&gt;% 
-               group_by(combined, hearing_impaired, diagnosed_depression) %&gt;% 
-               summarise( n = sum(n)) %&gt;% 
-               na.omit() %&gt;% 
-               pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %&gt;% 
-               mutate( pct_depression_among_libras_users = `1` / (`1`+`2`)) %&gt;%
-               select( -c(3:5)) 
-             ) %&gt;% 
-  ungroup() %&gt;%
-  select( -combined ) %&gt;%
-  knitr::kable()</code></pre>
-<pre><code>## `summarise()` has grouped output by &#39;combined&#39;, &#39;hearing_impaired&#39;. You can
-## override using the `.groups` argument.
-## `summarise()` has grouped output by &#39;combined&#39;, &#39;hearing_impaired&#39;. You can
-## override using the `.groups` argument.
-## Joining with `by = join_by(combined, hearing_impaired)`
-## `summarise()` has grouped output by &#39;combined&#39;, &#39;hearing_impaired&#39;. You can
-## override using the `.groups` argument.
-## Joining with `by = join_by(combined, hearing_impaired)`</code></pre>
-<table>
-<colgroup>
-<col width="20%" />
-<col width="20%" />
-<col width="18%" />
-<col width="40%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th align="left">hearing_impaired</th>
-<th align="right">pct_libras_users</th>
-<th align="right">pct_depression</th>
-<th align="right">pct_depression_among_libras_users</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">Not impaired</td>
-<td align="right">0.0284534</td>
-<td align="right">0.0763576</td>
-<td align="right">0.1222703</td>
-</tr>
-<tr class="even">
-<td align="left">Mildly impaired</td>
-<td align="right">0.0559718</td>
-<td align="right">0.0790343</td>
-<td align="right">0.1570855</td>
-</tr>
-<tr class="odd">
-<td align="left">Heavily impaired</td>
-<td align="right">0.1292562</td>
-<td align="right">0.1494309</td>
-<td align="right">0.0298612</td>
-</tr>
-<tr class="even">
-<td align="left">Fully impaired</td>
-<td align="right">0.6133677</td>
-<td align="right">0.0550637</td>
-<td align="right">0.0384861</td>
-</tr>
-</tbody>
-</table>
 </div>
 
 
