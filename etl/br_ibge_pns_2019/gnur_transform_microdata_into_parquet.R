@@ -1,4 +1,4 @@
-## Converte microdados do formato texto para o formato parquet usando library(arrow)
+## Converts microdata from text format to parquet using library(arrow)
 library(arrow)  # open_dataset, write_dataset
 library(readr)  # read_delim
 library(purrr)  # map
@@ -9,21 +9,18 @@ raw_data <- paste0(src_dir, 'raw/')
 proc_data <- paste0(src_dir, 'data/')
 parq_data <- paste0(src_dir, 'parquet/')
 
-
 col_names <-
   read_delim(
     file = paste0(proc_data, 'col_names.txt'),
     delim = '|',
     show_col_types = FALSE
   )
-## adaptado de https://stackoverflow.com/a/71305598
+## adapted from https://stackoverflow.com/a/71305598
 csv_schema <- schema(
   purrr::map( col_names$q_code, ~Field$create(name = .x, type = string()))
 )
 
-
-## leitura dos microdados delimitados por ',' via
-## pacote 'arrow'.
+## reads comma delimited microdata using arrow package
 microdata_pipe_delimited <-
   open_dataset(
     paste0(proc_data, 'microdata.txt'),
@@ -33,9 +30,7 @@ microdata_pipe_delimited <-
     skip = 0
   )
 
-
-## subconjunto de variáveis utilizadas no paper
-## Deaf_DFLE
+## subset of variables used in the academic paper Deaf_DFLE
 dfle_data <-
   microdata_pipe_delimited %>%
   select(
@@ -52,11 +47,11 @@ dfle_data <-
     g058,   # hearing impairment level
     g057,   # hearing impairment level even using hearning devices
     g05801, # knowdledge of Libras, the brazilian sign language
-    v0015
+    v0015   # indicator for type of interview
   )
 
-## escrita dos microdados tratados em formato 'parquet'
-## para agilidade e menor espaço em disco
+## saving microdata to disk in format 'parquet'
+## for speed and smaller disk size
 write_parquet(
   dfle_data, 
   sink = paste0(parq_data, 'microdata.parquet'),

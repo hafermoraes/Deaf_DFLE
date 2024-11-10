@@ -1,5 +1,5 @@
-## Script de leitura, tratamento e preparação do
-## dicionário de variáveis da PNS 2019
+## Extract-Transform-Load Script for the dictionary
+## variables of National Health Survey 2019
 
 library(readxl)   # read_excel
 library(dplyr)    # mutate, filter, as_tibble, rename, fill, unique
@@ -59,17 +59,17 @@ for (i in seq_len(nrow(dict))){
 var_dict <-
   dict %>%
   filter(
-    ## ignora linhas de título, parte e módulo da pesquisa
+    ## ignores lines not containing numbers
     !grepl('^parte|^variáve|^módulo|caso de mais|variáve', pos, ignore.case = TRUE),
     ) %>%
   mutate(
     var = tolower(var),
-    ## delimitação dos campos (início-final) como argumento da função 'cut' chamada via shell
+    ## arguments for command line tool 'cut'
     characters = paste0(pos, "-", as.numeric(pos) + as.numeric(len) -1)
   ) %>%
   transmute(part, module, q_code = var, q_desc, a_code, a_desc, characters)
 
-## dicionário de variáveis
+## dictionary of variables
 var_dict %>%
   select(part, module, q_code, q_desc, a_code, a_desc) %>%
   write_delim(
@@ -79,7 +79,7 @@ var_dict %>%
     col_names = TRUE
   )
 
-## argumento 'characters' da função 'cut' para delimitação do microdado
+## argument 'characters' of command line tool 'cut'
 var_dict %>%
   select(characters) %>%
   unique() %>%
@@ -90,7 +90,7 @@ var_dict %>%
     file = paste0(proc_data, 'cut_characters_argument.txt')
   )
 
-## nomes das colunas dos microdados (necessário para os arquivos .parquet)
+## column names for the pipe delimited (needed for .parquet files)
 var_dict %>%
   select(q_code) %>%
   unique() %>%
