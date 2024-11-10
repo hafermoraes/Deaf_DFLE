@@ -121,11 +121,11 @@ same, we proceed with the analysis.
 
 ## Validation against official package `PNSIBGE`
 
-```{get_pns_data, include=TRUE}
+```{r get_pns_data, include=TRUE}
 pns2019 <- get_pns(year=2019)
 ```
 
-```{svydesign_validation_pnsibge, include=TRUE}
+```{r svydesign_validation_pnsibge, include=TRUE}
 # reconciliation against
 #   https://sidra.ibge.gov.br/tabela/7666#/n1/all/v/2667/p/all/c2/all/c12258/all/d/v2667%200/l/v,p+c2,t+c12258/resultado
 round( svytable(formula=~J001+C006, design=subset(pns2019, C008 >=18))/1e3, 0) %>%
@@ -151,14 +151,14 @@ round( svytable(formula=~J001+C006, design=subset(pns2019, C008 >=18))/1e3, 0) %
 # 3 Muito bom e bom    3610   5696
 ```
 
-```{svydesign_validation_pnsibge_total_by_sex, include=TRUE}
+```{r svydesign_validation_pnsibge_total_by_sex, include=TRUE}
 round( svytable(formula=~C006, design=subset(pns2019, C008 >= 18))/1e3, 0)
 # C006
 # Homem Mulher 
 # 74553  84619
 ```
 
-```{svydesign_validation_pnsibge_overall_total, include=TRUE}
+```{r svydesign_validation_pnsibge_overall_total, include=TRUE}
 round( sum(svytable(formula=~C006, design=subset(pns2019, C008 >= 18)))/1e3, 0)
 # [1] 159171
 ```
