@@ -1,7 +1,8 @@
 # global variables
 uid=$(shell id -u)
 gid=$(shell id -g)
-etl=${HOME}/git/Deaf_DFLE/etl
+repo=${HOME}/git/Deaf_DFLE
+etl=${repo}/etl
 etl_docker_image=rocker/tidyverse:4.4.1
 image_name=deaf_dfle
 
@@ -34,13 +35,16 @@ data: ## Extract, transform and load data sources for analyses
 	mv /tmp/etl/* data/
 
 build: ## build Rstudio container when all sources are processed
-	docker buildx build -t ${image_name} -f ${HOME}/git/Deaf_DFLE/docker/Dockerfile /
-	docker run -it --rm \
+	@docker buildx build \
+		-t ${image_name} \
+		-f ${HOME}/git/Deaf_DFLE/docker/Dockerfile \
+		.
+	@docker run -it --rm \
 		--detach \
+		--volume ${repo}/analyses/:/home/rstudio/analyses/ \
 		--publish 8787:8787 \
-		--volume analyses/:/home/rstudio/analyses/ \
+		--name deaf_dfle_rr \
 		--env DISABLE_AUTH=true \
-		--user ${uid}:${gid} \
 		${image_name}
 	@echo "Access RStudio web by visiting http://localhost:8787 ..."
 
