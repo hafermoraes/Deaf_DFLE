@@ -262,3 +262,45 @@ table03 %>%
   select( 1,2,3,5,4) %>%
   knitr::kable()
 ```
+
+# Supplementary Materials
+
+## Calculations of DFLE for Female and Male together
+
+```{r dfle_suppl_both, include=TRUE}
+table03 %>% 
+  filter(
+    disease == 'depression',
+    sex == 'both'
+  ) %>%
+  ungroup() %>%
+  select(-disease, -sex) %>%
+  knitr::kable()
+```
+
+## Calculation of DFLE for Female
+
+```{r dfle_suppl_female, include=TRUE}
+table03 %>% 
+  filter(
+    disease == 'depression',
+    sex == 'female'
+  ) %>%
+  ungroup() %>%
+  select(-disease, -sex) %>% 
+  knitr::kable()
+```
+
+
+## Calculation of DFLE for Male
+
+```{r dfle_suppl_male, include=TRUE}
+table03 %>% 
+  filter(
+    disease == 'depression',
+    sex == 'male'
+  ) %>%
+  ungroup() %>%
+  select(-disease, -sex) %>%
+  knitr::kable()
+```
