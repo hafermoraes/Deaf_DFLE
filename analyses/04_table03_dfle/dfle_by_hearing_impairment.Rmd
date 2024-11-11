@@ -26,6 +26,7 @@ paper.
 library(readr)     # read_delim
 library(tidyr)     # pivot_wider
 library(dplyr)     # %>%, filter, select, 
+library(gtsummary) # as_gt, style_number, modify_header, gtsave
 ```
 
 # Importing the processed datasets
@@ -263,44 +264,64 @@ table03 %>%
   knitr::kable()
 ```
 
-# Supplementary Materials
-
-## Calculations of DFLE for Female and Male together
+# Supplementary Materials - Table 03
 
 ```{r dfle_suppl_both, include=TRUE}
-table03 %>% 
-  filter(
-    disease == 'depression',
-    sex == 'both'
-  ) %>%
+suppl_table <- table03 %>% 
   ungroup() %>%
-  select(-disease, -sex) %>%
-  knitr::kable()
+  select(-disease) 
+
+names(suppl_table) <- 
+    c("sex", # sex
+      "Hearing impairment level", # hearing_impairment_level
+      "Age group $[x,x+n)$", # age_grp
+      "Numbers surviving to age x $l_{x}$", # lx
+      "Person years lived in age interval ${}_{n} L_{x}$", # Lxn
+      "Total life expectancy $e_{x}$", # ex
+      "Proportion of age group with depression $\\pi_{x}$", # pix
+      "Person years lived without depression from age x $(1-\\pi_x)\\cdot {}_n L_x$", # py_wo_depression
+      "Total years lived without depression from age x $\\sum_{x}^{\\omega}(1-\\pi_{x})\\cdot {}_{n} L_{x}$", # cumsum_py_wo_depression
+      "Depression free life expectancy ${DFLE}_{x}$", # dfle
+      "Number in survey in age interval $N_{x}$", # Nx
+      "Variance of proportion with depression $S^2(\\pi_{x})$", # S2pix
+      "$L^2\\cdot S^2(\\pi_{x})$", # L2S2pix
+      "$\\sum_{x}^{\\omega} L^2\\cdot S^2(\\pi_{x})$", # cumsum_L2S2pix
+      "Variance of DFLE $S^2({DFLE}_{x})$", # var_dfle
+      "Standard error of DFLE $\\sqrt{S^2({DFLE}_{x})}$", # se_dfle
+      "Proportion of remaining life spent depression-free $\\% \\frac{{DFLE}_{x}}{e_{x}}$", # dfle_over_Ex
+      "Lower Confidence interval for DFLE ${DFLE}_{x} - 1.96\\cdot se({DFLE}_{x})$", # dfle_inf
+      "Upper Confidence interval for DFLE ${DFLE}_{x} + 1.96\\cdot se({DFLE}_{x})$" # dfle_sup
+    )
+
+options(knitr.table.format = "html")
+kable_out <- 
+  suppl_table %>% 
+  knitr::kable(
+    format.args = list(big.mark = " ", decimal.mark = "."),
+    digits = c(0, # sex
+               0, # hearing_impairment_level
+               0, # age_grp
+               0, # lx
+               0, # Lxn
+               2, # ex
+               4, # pix
+               0, # py_wo_depression
+               0, # cumsum_py_wo_depression
+               2, # dfle
+               0, # Nx
+               0, # S2pix
+               0, # L2S2pix
+               0, # cumsum_L2S2pix
+               4, # var_dfle
+               4, # se_dfle
+               2, # dfle_over_Ex
+               2, # dfle_inf
+               2  # dfle_sup
+               ),
+    format = "html",
+    escape = TRUE
+  ) 
+
+write_file(kable_out,  "kable_out.html")
 ```
 
-## Calculation of DFLE for Female
-
-```{r dfle_suppl_female, include=TRUE}
-table03 %>% 
-  filter(
-    disease == 'depression',
-    sex == 'female'
-  ) %>%
-  ungroup() %>%
-  select(-disease, -sex) %>% 
-  knitr::kable()
-```
-
-
-## Calculation of DFLE for Male
-
-```{r dfle_suppl_male, include=TRUE}
-table03 %>% 
-  filter(
-    disease == 'depression',
-    sex == 'male'
-  ) %>%
-  ungroup() %>%
-  select(-disease, -sex) %>%
-  knitr::kable()
-```
