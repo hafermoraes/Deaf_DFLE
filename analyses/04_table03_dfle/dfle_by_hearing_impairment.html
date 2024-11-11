@@ -1638,8 +1638,7 @@ selected microdata and prepare the data frames (<code>dplyr</code>,
 <code>tidyr</code>) for the analyses in the paper.</p>
 <pre class="r"><code>library(readr)     # read_delim
 library(tidyr)     # pivot_wider
-library(dplyr)     # %&gt;%, filter, select, 
-library(gtsummary) # as_gt, style_number, modify_header, gtsave</code></pre>
+library(dplyr)     # %&gt;%, filter, select, </code></pre>
 </div>
 <div id="importing-the-processed-datasets" class="section level1">
 <h1>Importing the processed datasets</h1>
@@ -2706,7 +2705,7 @@ table03 %&gt;%
   ungroup() %&gt;%
   select(-disease) 
 
-colnames(suppl_table) &lt;-   
+names(suppl_table) &lt;- 
     c(&quot;sex&quot;, # sex
       &quot;Hearing impairment level&quot;, # hearing_impairment_level
       &quot;Age group $[x,x+n)$&quot;, # age_grp
@@ -2728,6 +2727,7 @@ colnames(suppl_table) &lt;-
       &quot;Upper Confidence interval for DFLE ${DFLE}_{x} + 1.96\\cdot se({DFLE}_{x})$&quot; # dfle_sup
     )
 
+options(knitr.table.format = &quot;html&quot;)
 kable_out &lt;- 
   suppl_table %&gt;% 
   knitr::kable(
@@ -2753,7 +2753,7 @@ kable_out &lt;-
                2  # dfle_sup
                ),
     format = &quot;html&quot;,
-    escape = FALSE
+    escape = TRUE
   ) 
 
 write_file(kable_out,  &quot;kable_out.html&quot;)</code></pre>
