@@ -87,14 +87,21 @@ summary_aux %>%
   na.omit() %>% 
   pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>%
   mutate( pct_libras_users = yes / (yes+no)) %>% 
-  select( -c(yes,no)) %>%
+  select( -c(yes,no)) %>% 
   left_join( summary_aux %>% 
                group_by(combined, hearing_impaired, diagnosed_depression) %>% 
                summarise( n = sum(n)) %>%
                na.omit() %>% 
                pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
-               mutate( pct_depression = `1` / (`1`+`2`)) %>% 
-               select( -c(3:5)) 
+               mutate( 
+                 pct = `1` / (`1`+`2`),
+                 se = pct * (1 - pct) / (`1`+`2`),
+                 lint = round(pct - 1.96*se, 6 ),
+                 lsup = round(pct + 1.96*se, 6 ),
+                 pct = round(pct, 6), 
+                 pct_depression = paste(pct, "(", lint, ",", lsup, ")")
+               ) %>% 
+               select( combined, hearing_impaired, pct_depression)
              ) %>%
   left_join( summary_aux %>% 
                filter( libras == 'yes') %>% 
@@ -102,8 +109,15 @@ summary_aux %>%
                summarise( n = sum(n)) %>% 
                na.omit() %>% 
                pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %>% 
-               mutate( pct_depression_among_libras_users = `1` / (`1`+`2`)) %>%
-               select( -c(3:5)) 
+               mutate( 
+                 pct = `1` / (`1`+`2`),
+                 se = pct * (1 - pct) / (`1`+`2`),
+                 lint = round(pct - 1.96*se, 6 ),
+                 lsup = round(pct + 1.96*se, 6 ),
+                 pct = round(pct, 6), 
+                 pct_depression_among_libras_users = paste(pct, "(", lint, ",", lsup, ")")
+               ) %>%
+               select( combined, hearing_impaired, pct_depression_among_libras_users)
              ) %>% 
   ungroup() %>%
   select( -combined ) %>%

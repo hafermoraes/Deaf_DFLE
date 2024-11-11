@@ -187,7 +187,7 @@ dfle <-
     dfle = cumsum(aux)/lx, 
     age_grp = factor( age_grp, levels = AGE_LABELS),
     dfle_over_Ex = dfle / Ex,
-    S2pix = pix * (1-pix) / Nx, # Standard error of depression prevalence
+    S2pix = ifelse( Nx == 0, 0, pix * (1-pix) / Nx), # Standard error of depression prevalence
     L2S2pix = Lxn * Lxn * S2pix, # L²S²(pix)
     cumsum_L2S2pix = cumsum(L2S2pix), # Sum L²S²(pix)
     var_dfle = cumsum_L2S2pix / (lx * lx), # variance of DFLEx
@@ -214,12 +214,16 @@ dfle %>%
       age_grp == '40-44' ~ 40,
       age_grp == '60-64' ~ 60,
       age_grp == '80-84' ~ 80,
-    )
-  ) %>%
+    ),
+    lint = round(dfle - 1.96*se_dfle, 4),
+    lsup = round(dfle + 1.96*se_dfle, 4),
+    dfle = round(dfle, 3),
+    confint = paste0(dfle, " (", lint , ", ", lsup, ")")
+  ) %>% 
   pivot_wider(
     id_cols = c('sex', 'age', 'Ex'),
     names_from = 'hearing_impairment_level',
-    values_from = 'dfle'
+    values_from = 'confint'
   ) %>%
   select( 1,2,3,5,4) %>%
   knitr::kable()

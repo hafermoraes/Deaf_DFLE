@@ -1698,14 +1698,21 @@ summary_aux %&gt;%
   na.omit() %&gt;% 
   pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %&gt;%
   mutate( pct_libras_users = yes / (yes+no)) %&gt;% 
-  select( -c(yes,no)) %&gt;%
+  select( -c(yes,no)) %&gt;% 
   left_join( summary_aux %&gt;% 
                group_by(combined, hearing_impaired, diagnosed_depression) %&gt;% 
                summarise( n = sum(n)) %&gt;%
                na.omit() %&gt;% 
                pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %&gt;% 
-               mutate( pct_depression = `1` / (`1`+`2`)) %&gt;% 
-               select( -c(3:5)) 
+               mutate( 
+                 pct = `1` / (`1`+`2`),
+                 se = pct * (1 - pct) / (`1`+`2`),
+                 lint = round(pct - 1.96*se, 6 ),
+                 lsup = round(pct + 1.96*se, 6 ),
+                 pct = round(pct, 6), 
+                 pct_depression = paste(pct, &quot;(&quot;, lint, &quot;,&quot;, lsup, &quot;)&quot;)
+               ) %&gt;% 
+               select( combined, hearing_impaired, pct_depression)
              ) %&gt;%
   left_join( summary_aux %&gt;% 
                filter( libras == &#39;yes&#39;) %&gt;% 
@@ -1713,51 +1720,58 @@ summary_aux %&gt;%
                summarise( n = sum(n)) %&gt;% 
                na.omit() %&gt;% 
                pivot_wider(id_cols = c(1,2), names_from = 3, values_from=4) %&gt;% 
-               mutate( pct_depression_among_libras_users = `1` / (`1`+`2`)) %&gt;%
-               select( -c(3:5)) 
+               mutate( 
+                 pct = `1` / (`1`+`2`),
+                 se = pct * (1 - pct) / (`1`+`2`),
+                 lint = round(pct - 1.96*se, 6 ),
+                 lsup = round(pct + 1.96*se, 6 ),
+                 pct = round(pct, 6), 
+                 pct_depression_among_libras_users = paste(pct, &quot;(&quot;, lint, &quot;,&quot;, lsup, &quot;)&quot;)
+               ) %&gt;%
+               select( combined, hearing_impaired, pct_depression_among_libras_users)
              ) %&gt;% 
   ungroup() %&gt;%
   select( -combined ) %&gt;%
   knitr::kable()</code></pre>
 <table>
 <colgroup>
-<col width="20%" />
-<col width="20%" />
-<col width="18%" />
-<col width="40%" />
+<col width="16%" />
+<col width="16%" />
+<col width="32%" />
+<col width="33%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th align="left">hearing_impaired</th>
 <th align="right">pct_libras_users</th>
-<th align="right">pct_depression</th>
-<th align="right">pct_depression_among_libras_users</th>
+<th align="left">pct_depression</th>
+<th align="left">pct_depression_among_libras_users</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="left">Not impaired</td>
 <td align="right">0.0284534</td>
-<td align="right">0.0763576</td>
-<td align="right">0.1222703</td>
+<td align="left">0.076358 ( 0.076358 , 0.076358 )</td>
+<td align="left">0.12227 ( 0.12227 , 0.12227 )</td>
 </tr>
 <tr class="even">
 <td align="left">Mildly impaired</td>
 <td align="right">0.0559718</td>
-<td align="right">0.0790343</td>
-<td align="right">0.1570855</td>
+<td align="left">0.079034 ( 0.079034 , 0.079035 )</td>
+<td align="left">0.157085 ( 0.157074 , 0.157097 )</td>
 </tr>
 <tr class="odd">
 <td align="left">Heavily impaired</td>
 <td align="right">0.1292562</td>
-<td align="right">0.1494309</td>
-<td align="right">0.0298612</td>
+<td align="left">0.149431 ( 0.149428 , 0.149433 )</td>
+<td align="left">0.029861 ( 0.029855 , 0.029868 )</td>
 </tr>
 <tr class="even">
 <td align="left">Fully impaired</td>
 <td align="right">0.6133677</td>
-<td align="right">0.0550637</td>
-<td align="right">0.0384861</td>
+<td align="left">0.055064 ( 0.055059 , 0.055068 )</td>
+<td align="left">0.038486 ( 0.038482 , 0.03849 )</td>
 </tr>
 </tbody>
 </table>
