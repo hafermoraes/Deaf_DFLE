@@ -15,7 +15,7 @@ cd Deaf_DFLE
 
 To fully reproduce the environment used for the paper, it is recommended to use =docker= -- visit https://github.com/docker/docker-install (last accessed on November, 11th 2024) and follow the instructions -- and =docker buildx= -- visit https://github.com/docker/buildx?tab=readme-ov-file#linux-packages (last accessed on November, 11th 2024) and follow the instructions.
 
-** Option A: Building upon data already in the repository
+** Option A: Using data already in the repository and standard rocker RStudio image
 
 The repository already ships with the data preprocessed and ready for analyses and reproduction of tables and figures in the paper.
 
@@ -68,7 +68,7 @@ Open the web browser and access https://localhost:8787/ for
 
 ** Option C: Use your own GNU R and RStudio versions
 
-If you wish, you can also interact with the scripts using your own local versions of GNU R and RStudio without having to ressort to Docker.
+If you wish, you can also interact with the scripts using your own local versions of GNU R and RStudio without having to resort to Docker.
 
 Note however that the results in the paper may not be fully reproducible due to differences in the GNU R version and its packages versions.
 
