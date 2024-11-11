@@ -11,7 +11,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message=FALSE, warning = FALSE)
 ```
 
 # R Packages
@@ -59,7 +59,7 @@ dfle_raw <-
 
 # Table 3: Comparison by sex, age, and grouped level of hearing impairment of life expectancy and depression-free life expectancy, Brazil
 
-```{r dfle_table03, include=TRUE}
+```{r dfle_pns, include=TRUE}
 AGE_BREAKS <- c( 0, 1, seq(from=5,to=90, by=5), 1e3)
 AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
                 ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
@@ -98,6 +98,15 @@ dfle_pns <- dfle_raw %>%
     diagnosed_anxiety = q11006,
   ) 
 
+# sample data for demonstration of changes
+dfle_pns %>%
+  filter(Freq != 0) %>%
+  head(5) %>%
+  knitr::kable()
+```
+
+
+```{r depr_by_impairment, include=TRUE}
 # ever diagnosed with depression by a physician (g058)
 depr_by_impairment <- dfle_pns %>%
   na.omit() %>%
@@ -107,38 +116,92 @@ depr_by_impairment <- dfle_pns %>%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %>% 
   rename( yes = `1`, no = `2`) 
 
-depr_by_impairment <- bind_rows(
-  depr_by_impairment,
-  depr_by_impairment %>% 
-  group_by( hearing_impairment_level, age_grp) %>%
-  summarise( yes = sum(yes), no = sum(no)) %>%
-  transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
-) %>% mutate(
+# sample data for demonstration of changes
+depr_by_impairment %>%
+  head(5) %>%
+  knitr::kable()
+```
+
+```{r depr_by_impairment_summary, include=TRUE}
+depr_by_impairment <- 
+  bind_rows(
+    depr_by_impairment,
+    depr_by_impairment %>% 
+    group_by( hearing_impairment_level, age_grp) %>%
+    summarise( yes = sum(yes), no = sum(no)) %>%
+    transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
+  ) %>% 
+  mutate(
     pct = ifelse( yes+no== 0, 0, yes / (yes + no))
   ) 
 
+# sample data for demonstration of changes
+depr_by_impairment %>%
+  head(5) %>%
+  knitr::kable()
+```
+
+```{r prevalences, include=TRUE}
 prevalences <- 
   bind_rows(
     depr_by_impairment %>%
     mutate( disease = 'depression')
   ) 
 
+# sample data for demonstration of changes
+prevalences %>%
+  head(5) %>%
+  knitr::kable()
+```
+
+```{r dfle_step_1, include=TRUE}
 dfle <- 
   prevalences %>% 
-  transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %>%
+  transmute(
+    disease, 
+    sex, 
+    hearing_impairment_level, 
+    age_grp, 
+    pix = pct, # prevalence of depression by sex, age group and impairment level
+    Nx = yes + no # Number in survey in Interval
+  ) %>% 
   arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %>% 
   na.omit() %>% 
   left_join(br_ibge_censo_2010, by = c('age_grp','sex')) %>% 
-  mutate( aux = (1-pix)*Lxn ) %>% 
+  mutate(
+    aux = (1-pix)*Lxn 
+  ) 
+
+# sample data for demonstration of changes
+dfle %>% 
+  head(5) %>%
+  knitr::kable()
+```
+
+
+```{r dfle_step_2, include=TRUE}
+dfle <-
+  dfle %>% 
   group_by(disease, sex, hearing_impairment_level) %>%
   mutate( 
     dfle = cumsum(aux)/lx, 
     age_grp = factor( age_grp, levels = AGE_LABELS),
-    dfle_over_Ex = dfle / Ex
+    dfle_over_Ex = dfle / Ex,
+    S2pix = ifelse( Nx == 0, 0, pix * (1-pix) / Nx), # Standard error of depression prevalence
+    L2S2pix = Lxn * Lxn * S2pix, # L²S²(pix)
+    cumsum_L2S2pix = cumsum(L2S2pix), # Sum L²S²(pix)
+    var_dfle = cumsum_L2S2pix / (lx * lx), # variance of DFLEx
+    se_dfle = var_dfle^(1/2), # standard error of DFLEx
     ) %>% 
   select( -aux ) %>% 
   arrange( disease, sex, hearing_impairment_level, age_grp ) 
 
+dfle %>% 
+  head(10) %>%
+  knitr::kable()
+```
+
+```{r dfle_step_3, include=TRUE}
 dfle %>% 
   filter(
     disease == 'depression',
@@ -151,12 +214,16 @@ dfle %>%
       age_grp == '40-44' ~ 40,
       age_grp == '60-64' ~ 60,
       age_grp == '80-84' ~ 80,
-    )
-  ) %>%
+    ),
+    lint = round(dfle - 1.96*se_dfle, 4),
+    lsup = round(dfle + 1.96*se_dfle, 4),
+    dfle = round(dfle, 3),
+    confint = paste0(dfle, " (", lint , ", ", lsup, ")")
+  ) %>% 
   pivot_wider(
     id_cols = c('sex', 'age', 'Ex'),
     names_from = 'hearing_impairment_level',
-    values_from = 'dfle'
+    values_from = 'confint'
   ) %>%
   select( 1,2,3,5,4) %>%
   knitr::kable()

@@ -1648,9 +1648,10 @@ library(tidyr)     # pivot_wider</code></pre>
 <div id="br_ibge_pns_2019-national-health-survey-2019" class="section level2">
 <h2>[<code>br_ibge_pns_2019</code>] National Health Survey 2019</h2>
 <pre class="r"><code># 2019th edition from National Health Survey (PNS/IBGE)
-br_ibge_pns_2019 &lt;- read_parquet(
-  file = &#39;/home/rstudio/data/br_ibge_pns_2019/microdata.parquet&#39;
-) %&gt;%
+br_ibge_pns_2019 &lt;- 
+  read_parquet(
+    file = &#39;/home/rstudio/data/br_ibge_pns_2019/microdata.parquet&#39;
+  ) %&gt;%
   mutate(across(everything(), as.numeric))</code></pre>
 </div>
 </div>
@@ -1709,8 +1710,6 @@ round( svytable(formula=~j001+c006, design=subset(pns2019_posterior, c008 &gt;=1
   group_by(tab7666, c006) %&gt;%
   summarise( n = sum(Freq) ) %&gt;%
   pivot_wider(id_cols = tab7666, names_from = c006, values_from = n)</code></pre>
-<pre><code>## `summarise()` has grouped output by &#39;tab7666&#39;. You can override using the
-## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":["tab7666"],"name":[1],"type":["fct"],"align":["left"]},{"label":["Masculino"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Feminino"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"Muito ruim e ruim","2":"53296","3":"54574"},{"1":"Regular","2":"17646","3":"24349"},{"1":"Muito bom e bom","2":"3610","3":"5696"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
@@ -1746,8 +1745,6 @@ round( svytable(formula=~J001+C006, design=subset(pns2019, C008 &gt;=18))/1e3, 0
   group_by(tab7666, C006) %&gt;%
   summarise( n = sum(Freq) ) %&gt;%
   pivot_wider(id_cols = tab7666, names_from = C006, values_from = n)</code></pre>
-<pre><code>## `summarise()` has grouped output by &#39;tab7666&#39;. You can override using the
-## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":["tab7666"],"name":[1],"type":["fct"],"align":["left"]},{"label":["Homem"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Mulher"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"Muito ruim e ruim","2":"53296","3":"54574"},{"1":"Regular","2":"17646","3":"24349"},{"1":"Muito bom e bom","2":"3610","3":"5696"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
