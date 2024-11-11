@@ -26,7 +26,6 @@ paper.
 library(readr)     # read_delim
 library(tidyr)     # pivot_wider
 library(dplyr)     # %>%, filter, select, 
-library(gtsummary) # as_gt, style_number, modify_header, gtsave
 ```
 
 # Importing the processed datasets
