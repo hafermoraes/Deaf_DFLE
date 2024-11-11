@@ -96,9 +96,9 @@ summary_aux %>%
                mutate( 
                  pct = `1` / (`1`+`2`),
                  se = pct * (1 - pct) / (`1`+`2`),
-                 lint = round(pct - 1.96*se, 6 ),
-                 lsup = round(pct + 1.96*se, 6 ),
-                 pct = round(pct, 6), 
+                 lint = round(100*(pct - 1.96*se), 4 ),
+                 lsup = round(100*(pct + 1.96*se), 4 ),
+                 pct = round(100*pct, 4), 
                  pct_depression = paste(pct, "(", lint, ",", lsup, ")")
                ) %>% 
                select( combined, hearing_impaired, pct_depression)
@@ -112,9 +112,9 @@ summary_aux %>%
                mutate( 
                  pct = `1` / (`1`+`2`),
                  se = pct * (1 - pct) / (`1`+`2`),
-                 lint = round(pct - 1.96*se, 6 ),
-                 lsup = round(pct + 1.96*se, 6 ),
-                 pct = round(pct, 6), 
+                 lint = round(100*(pct - 1.96*se), 4 ),
+                 lsup = round(100*(pct + 1.96*se), 4 ),
+                 pct = round(100*pct, 4), 
                  pct_depression_among_libras_users = paste(pct, "(", lint, ",", lsup, ")")
                ) %>%
                select( combined, hearing_impaired, pct_depression_among_libras_users)

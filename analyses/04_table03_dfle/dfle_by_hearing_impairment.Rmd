@@ -118,6 +118,7 @@ depr_by_impairment <- dfle_pns %>%
 
 # sample data for demonstration of changes
 depr_by_impairment %>%
+  filter(no != 0) %>%
   head(5) %>%
   knitr::kable()
 ```
@@ -137,6 +138,7 @@ depr_by_impairment <-
 
 # sample data for demonstration of changes
 depr_by_impairment %>%
+  filter(no != 0) %>%
   head(5) %>%
   knitr::kable()
 ```
@@ -150,6 +152,7 @@ prevalences <-
 
 # sample data for demonstration of changes
 prevalences %>%
+  filter(no != 0) %>%
   head(5) %>%
   knitr::kable()
 ```
@@ -180,29 +183,60 @@ dfle %>%
 
 
 ```{r dfle_step_2, include=TRUE}
-dfle <-
+table03 <-
   dfle %>% 
-  group_by(disease, sex, hearing_impairment_level) %>%
-  mutate( 
-    dfle = cumsum(aux)/lx, 
-    age_grp = factor( age_grp, levels = AGE_LABELS),
-    dfle_over_Ex = dfle / Ex,
-    S2pix = ifelse( Nx == 0, 0, pix * (1-pix) / Nx), # Standard error of depression prevalence
-    L2S2pix = Lxn * Lxn * S2pix, # L²S²(pix)
-    cumsum_L2S2pix = cumsum(L2S2pix), # Sum L²S²(pix)
-    var_dfle = cumsum_L2S2pix / (lx * lx), # variance of DFLEx
-    se_dfle = var_dfle^(1/2), # standard error of DFLEx
-    ) %>% 
-  select( -aux ) %>% 
+  group_by(disease, sex, hearing_impairment_level) %>% 
+  transmute( 
+    # age group
+    # $[x,x+n)$  [1a]
+    age_grp = factor( age_grp, levels = AGE_LABELS), 
+    # Numbers surviving to age x
+    # $l_x$ [6]
+    lx, 
+    # Person years lived in age interval
+    # ${}_n L_x$ [7]
+    Lxn, 
+    # Total life expectancy
+    # $e_x$ [9]
+    ex = Ex, 
+    # Proportion of age group with depression
+    # $\pi_x$ [10]
+    pix, 
+    # Person years lived without depression from age x
+    # $(1-\pi_x)\cdot {}_n L_x$ [11]
+    py_wo_depression = (1-pix)*Lxn, 
+    # Total years lived without depression from age x
+    # $\sum_{x}^{\omega}(1-\pi_x)\cdot{}_n L_x$ [12]
+    cumsum_py_wo_depression = cumsum(py_wo_depression),  
+    # Depression free life expectancy
+    dfle = cumsum(aux)/lx, # ${DFLE}_x$ [13]
+    # Number in survey in age interval
+    Nx, # $N_x$ [15]
+    # Variance of proportion with depression
+    S2pix = ifelse( Nx == 0, 0, pix * (1-pix) / Nx), # $S^2(\pi_x)$ [16]
+    # 
+    L2S2pix = Lxn * Lxn * S2pix, # $L^2\cdot S^2(\pi_x)$ [17]
+    # 
+    cumsum_L2S2pix = cumsum(L2S2pix), # $\sum_{x}^{\omega} L^2\cdot S^2(\pi_x)$ [18]
+    # Variance of DFLEx
+    var_dfle = cumsum_L2S2pix / (lx * lx), # $S^2(DFLE_x)$ [19]
+    # Standard error of DFLEx
+    se_dfle = var_dfle^(1/2), # $\sqrt{S^2(DFLE_x)}$ [19] 
+    # Proportion of remaining life spent depression-free
+    dfle_over_Ex = dfle / ex, # $\% \frac{{DFLE}_x}{e_x}$
+    # Confidence interval for DFLEx
+    dfle_inf = round( dfle - 1.96 * se_dfle, 6), # ${DFLE}_x - 1.96\cdot se({DFLE}_x)$
+    dfle_sup = round( dfle + 1.96 * se_dfle, 6) # ${DFLE}_x + 1.96\cdot se({DFLE}_x)$
+  ) %>%
   arrange( disease, sex, hearing_impairment_level, age_grp ) 
 
-dfle %>% 
+table03 %>% 
   head(10) %>%
   knitr::kable()
 ```
 
 ```{r dfle_step_3, include=TRUE}
-dfle %>% 
+table03 %>% 
   filter(
     disease == 'depression',
     age_grp %in% c('<1', '20-24', '40-44','60-64','80-84')
@@ -221,7 +255,7 @@ dfle %>%
     confint = paste0(dfle, " (", lint , ", ", lsup, ")")
   ) %>% 
   pivot_wider(
-    id_cols = c('sex', 'age', 'Ex'),
+    id_cols = c('sex', 'age', 'ex'),
     names_from = 'hearing_impairment_level',
     values_from = 'confint'
   ) %>%

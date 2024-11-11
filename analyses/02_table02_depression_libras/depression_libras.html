@@ -1707,9 +1707,9 @@ summary_aux %&gt;%
                mutate( 
                  pct = `1` / (`1`+`2`),
                  se = pct * (1 - pct) / (`1`+`2`),
-                 lint = round(pct - 1.96*se, 6 ),
-                 lsup = round(pct + 1.96*se, 6 ),
-                 pct = round(pct, 6), 
+                 lint = round(100*(pct - 1.96*se), 4 ),
+                 lsup = round(100*(pct + 1.96*se), 4 ),
+                 pct = round(100*pct, 4), 
                  pct_depression = paste(pct, &quot;(&quot;, lint, &quot;,&quot;, lsup, &quot;)&quot;)
                ) %&gt;% 
                select( combined, hearing_impaired, pct_depression)
@@ -1723,9 +1723,9 @@ summary_aux %&gt;%
                mutate( 
                  pct = `1` / (`1`+`2`),
                  se = pct * (1 - pct) / (`1`+`2`),
-                 lint = round(pct - 1.96*se, 6 ),
-                 lsup = round(pct + 1.96*se, 6 ),
-                 pct = round(pct, 6), 
+                 lint = round(100*(pct - 1.96*se), 4 ),
+                 lsup = round(100*(pct + 1.96*se), 4 ),
+                 pct = round(100*pct, 4), 
                  pct_depression_among_libras_users = paste(pct, &quot;(&quot;, lint, &quot;,&quot;, lsup, &quot;)&quot;)
                ) %&gt;%
                select( combined, hearing_impaired, pct_depression_among_libras_users)
@@ -1735,10 +1735,10 @@ summary_aux %&gt;%
   knitr::kable()</code></pre>
 <table>
 <colgroup>
-<col width="16%" />
-<col width="16%" />
-<col width="32%" />
-<col width="33%" />
+<col width="17%" />
+<col width="17%" />
+<col width="30%" />
+<col width="34%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -1752,26 +1752,26 @@ summary_aux %&gt;%
 <tr class="odd">
 <td align="left">Not impaired</td>
 <td align="right">0.0284534</td>
-<td align="left">0.076358 ( 0.076358 , 0.076358 )</td>
-<td align="left">0.12227 ( 0.12227 , 0.12227 )</td>
+<td align="left">7.6358 ( 7.6358 , 7.6358 )</td>
+<td align="left">12.227 ( 12.227 , 12.227 )</td>
 </tr>
 <tr class="even">
 <td align="left">Mildly impaired</td>
 <td align="right">0.0559718</td>
-<td align="left">0.079034 ( 0.079034 , 0.079035 )</td>
-<td align="left">0.157085 ( 0.157074 , 0.157097 )</td>
+<td align="left">7.9034 ( 7.9034 , 7.9035 )</td>
+<td align="left">15.7085 ( 15.7074 , 15.7097 )</td>
 </tr>
 <tr class="odd">
 <td align="left">Heavily impaired</td>
 <td align="right">0.1292562</td>
-<td align="left">0.149431 ( 0.149428 , 0.149433 )</td>
-<td align="left">0.029861 ( 0.029855 , 0.029868 )</td>
+<td align="left">14.9431 ( 14.9428 , 14.9433 )</td>
+<td align="left">2.9861 ( 2.9855 , 2.9868 )</td>
 </tr>
 <tr class="even">
 <td align="left">Fully impaired</td>
 <td align="right">0.6133677</td>
-<td align="left">0.055064 ( 0.055059 , 0.055068 )</td>
-<td align="left">0.038486 ( 0.038482 , 0.03849 )</td>
+<td align="left">5.5064 ( 5.5059 , 5.5068 )</td>
+<td align="left">3.8486 ( 3.8482 , 3.849 )</td>
 </tr>
 </tbody>
 </table>
