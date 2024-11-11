@@ -2,7 +2,6 @@
 uid=$(shell id -u)
 gid=$(shell id -g)
 repo=${HOME}/git/Deaf_DFLE
-etl=${repo}/etl
 etl_docker_image=rocker/tidyverse:4.4.1
 image_name=deaf_dfle
 
@@ -12,21 +11,21 @@ fetch_data: ## Extract, transform and load data sources for analyses
 	# National Health Survey 2019 (br_ibge_pns_2019)
 	docker run -it --rm \
 		--volume /tmp/:/tmp/ \
-		--volume $(etl)/:/etl/ \
+		--volume $(repo)/etl/:/etl/ \
 		--user ${uid}:${gid} \
 		$(etl_docker_image) \
 		sh -c "cd /etl/br_ibge_pns_2019 && sh etl.sh"
 	# Abridged Life Tables from 2010 Census (br_ibge_censo_2010)
 	docker run -it --rm \
 		--volume /tmp/:/tmp/ \
-		--volume $(etl)/:/etl/ \
+		--volume $(repo)/etl/:/etl/ \
 		--user ${uid}:${gid} \
 		$(etl_docker_image) \
 		sh -c "cd /etl/br_ibge_censo_2010 && sh etl.sh"
 	# Abridged Life Tables from 2019 (de_mpidr_hld)
 	docker run -it --rm \
 		--volume /tmp/:/tmp/ \
-		--volume $(etl)/:/etl/ \
+		--volume $(repo)/etl/:/etl/ \
 		--user ${uid}:${gid} \
 		$(etl_docker_image) \
 		sh -c "cd /etl/de_mpidr_hld && sh etl.sh"
@@ -44,8 +43,8 @@ fetch_data: ## Extract, transform and load data sources for analyses
 
 build: ## build Rstudio container when all sources are processed
 	@docker buildx build \
-		-t ${image_name} \
-		-f ${HOME}/git/Deaf_DFLE/docker/Dockerfile \
+		--tag ${image_name} \
+		--file ${HOME}/git/Deaf_DFLE/docker/Dockerfile \
 		.
 	@docker run -it --rm \
 		--detach \

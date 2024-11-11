@@ -1,17 +1,25 @@
 
-
-
 * Reproducible scripts for the paper on the Depression Free Life Expectancy for the Hearing Impaired
 
-** Building upon data already in the repository
-
-*** Step 1: clone this github repository
+First off, clone this github repository
 
 #+begin_src sh
 git clone git@github.com:hafermoraes/Deaf_DFLE.git
 #+end_src
 
-*** Step 2: run RStudio via docker
+and change directory into its local copy.
+
+#+begin_src sh
+cd Deaf_DFLE
+#+end_src
+
+To fully reproduce the environment used for the paper, it is recommended to use =docker= -- visit https://github.com/docker/docker-install (last accessed on November, 11th 2024) and follow the instructions -- and =docker buildx= -- visit https://github.com/docker/buildx?tab=readme-ov-file#linux-packages (last accessed on November, 11th 2024) and follow the instructions.
+
+** Option A: Building upon data already in the repository
+
+The repository already ships with the data preprocessed and ready for analyses and reproduction of tables and figures in the paper.
+
+The following code snippet will mount the =analyses/= and =data/= folders as well as the =.Rprofile= file into a =rocker/tidyverse:4.4.1= RStudio Docker container.
 
 #+begin_src sh
 docker run -it --rm \
@@ -24,16 +32,52 @@ docker run -it --rm \
        rocker/tidyverse:4.4.1
 #+end_src
 
-access https://localhost:8787/
+Before accessing the =http://localhost:8787= in the web browser for interacting with the data and scripts, some R packages (located at file =analyses/.Rprofile=) need to be installed, which might take a while at each time the following code snippet is executed.
 
-** Fetching data from internet 
+#+begin_src R
+## contents of the file analyses/.Rprofile
+##-------------------------------------------------
+
+## install 'survey' package when launching the rstudio docker container
+
+if (interactive()) {  
+  suppressMessages(utils::install.packages("survey", quiet=TRUE))
+  suppressMessages(utils::install.packages("ggstats", quiet=TRUE))
+  suppressMessages(utils::install.packages("PNSIBGE", quiet=TRUE))
+  suppressMessages(utils::install.packages("svglite", quiet=TRUE))
+}
+#+end_src
+
+** Option B: Fetch data (if needed) and build container
+
+If needed, fetch the data once again by executing the following command at the repository root's folder
 
 #+begin_src sh
+# execute the command bellow from the Deaf_DLFE/ root folder
 make fetch_data
 #+end_src
 
+and the execute the following command to build the RStudio Docker container prepackaged with the additional R packages according to the Dockerfile at =docker/Dockerfile=
+
 #+begin_src sh
+# execute the command bellow from the Deaf_DLFE/ root folder
 make build
 #+end_src
 
-and https://localhost:8787/
+Open the web browser and access https://localhost:8787/ for 
+
+** Option C: Use your own GNU R and RStudio versions
+
+If you wish, you can also interact with the scripts using your own local versions of GNU R and RStudio without having to ressort to Docker.
+
+Note however that the results in the paper may not be fully reproducible due to differences in the GNU R version and its packages versions.
+
+In this case you can directly interact with the RMarkdown scripts at the =analyses/= folder but you will have to adapt the paths to the datasets.
+
+Simply change =/home/rstudio/= by the path to the =data/= folder in your computer after you've cloned this repo.
+
+You will have to perform these changes at each RMarkdown file in the =analyses/= folder plan to use.
+
+
+
+
