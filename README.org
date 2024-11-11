@@ -13,7 +13,11 @@ and change directory into its local copy.
 cd Deaf_DFLE
 #+end_src
 
-To fully reproduce the environment used for the paper, it is recommended to use =docker= -- visit https://github.com/docker/docker-install (last accessed on November, 11th 2024) and follow the instructions -- and =docker buildx= -- visit https://github.com/docker/buildx?tab=readme-ov-file#linux-packages (last accessed on November, 11th 2024) and follow the instructions.
+To fully reproduce the environment used for the paper, it is recommended to use
+1. =docker= (visit https://github.com/docker/docker-install, last accessed on November, 11th 2024, and follow the instructions) and 
+2. =docker buildx= (visit https://github.com/docker/buildx?tab=readme-ov-file#linux-packages, last accessed on November, 11th 2024, and follow the instructions).
+
+The analyses were made in a computer with GNU Linux Mint installed. If you are using Microsoft Windows, please use WSL to execute the codes bellow. If you are using GNU Linux, any of the BSDs or MAC OS, you are good to go...
 
 ** Option A: Using data already in the repository and standard rocker RStudio image
 
@@ -76,7 +80,7 @@ In this case you can directly interact with the RMarkdown scripts at the =analys
 
 Simply change =/home/rstudio/= by the path to the =data/= folder in your computer after you've cloned this repo.
 
-You will have to perform these changes at each RMarkdown file in the =analyses/= folder plan to use.
+You will have to perform these changes at each RMarkdown file in the =analyses/= folder you plan to interact with.
 
 
 
