@@ -1710,40 +1710,826 @@ dfle_pns &lt;- dfle_raw %&gt;%
     diagnosed_anxiety = q11006,
   ) 
 
-# ever diagnosed with depression by a physician (g058)
+dfle_pns %&gt;%
+  filter(Freq != 0) %&gt;%
+  head(10) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<colgroup>
+<col width="3%" />
+<col width="3%" />
+<col width="3%" />
+<col width="3%" />
+<col width="4%" />
+<col width="3%" />
+<col width="4%" />
+<col width="7%" />
+<col width="3%" />
+<col width="4%" />
+<col width="4%" />
+<col width="5%" />
+<col width="15%" />
+<col width="10%" />
+<col width="12%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">c008</th>
+<th align="left">g058</th>
+<th align="left">g057</th>
+<th align="left">c006</th>
+<th align="left">g05801</th>
+<th align="left">q092</th>
+<th align="left">q11006</th>
+<th align="right">Freq</th>
+<th align="left">sex</th>
+<th align="left">libras</th>
+<th align="left">age_grp</th>
+<th align="left">combined</th>
+<th align="left">hearing_impairment_level</th>
+<th align="left">hearing_impaired</th>
+<th align="left">diagnosed_depression</th>
+<th align="left">diagnosed_anxiety</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">1229320.1967</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">&lt;1</td>
+<td align="left"></td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">1204122.3620</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">1-4</td>
+<td align="left"></td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="right">2</td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">1236054.7861</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">1-4</td>
+<td align="left">1</td>
+<td align="left">Not or mildly impaired</td>
+<td align="left">Not impaired</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="right">3</td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">1292759.7757</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">1-4</td>
+<td align="left">1</td>
+<td align="left">Not or mildly impaired</td>
+<td align="left">Not impaired</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="right">4</td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">1355819.9103</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">1-4</td>
+<td align="left">1</td>
+<td align="left">Not or mildly impaired</td>
+<td align="left">Not impaired</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="left">2</td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">3208.3241</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">1-4</td>
+<td align="left">2</td>
+<td align="left">Not or mildly impaired</td>
+<td align="left">Mildly impaired</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="left">2</td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">5351.3129</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">1-4</td>
+<td align="left">2</td>
+<td align="left">Not or mildly impaired</td>
+<td align="left">Mildly impaired</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="left">2</td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">8502.5390</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">1-4</td>
+<td align="left">2</td>
+<td align="left">Not or mildly impaired</td>
+<td align="left">Mildly impaired</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="right">2</td>
+<td align="left">3</td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">353.0280</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">1-4</td>
+<td align="left">3</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">Heavily impaired</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="right">3</td>
+<td align="left">3</td>
+<td align="left"></td>
+<td align="left">1</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">232.0327</td>
+<td align="left">male</td>
+<td align="left">NA</td>
+<td align="left">1-4</td>
+<td align="left">3</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">Heavily impaired</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code># ever diagnosed with depression by a physician (g058)
 depr_by_impairment &lt;- dfle_pns %&gt;%
   na.omit() %&gt;%
   group_by( hearing_impairment_level, age_grp, sex, diagnosed_depression) %&gt;%
   summarise( n = sum( Freq ) ) %&gt;%
   filter( diagnosed_depression != &#39; &#39;) %&gt;%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %&gt;% 
-  rename( yes = `1`, no = `2`) </code></pre>
-<pre><code>## `summarise()` has grouped output by &#39;hearing_impairment_level&#39;, &#39;age_grp&#39;,
-## &#39;sex&#39;. You can override using the `.groups` argument.</code></pre>
-<pre class="r"><code>depr_by_impairment &lt;- bind_rows(
-  depr_by_impairment,
-  depr_by_impairment %&gt;% 
-  group_by( hearing_impairment_level, age_grp) %&gt;%
-  summarise( yes = sum(yes), no = sum(no)) %&gt;%
-  transmute( hearing_impairment_level, age_grp, sex = &#39;both&#39;, yes, no)
-) %&gt;% mutate(
+  rename( yes = `1`, no = `2`) 
+
+depr_by_impairment %&gt;%
+  head(10) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">hearing_impairment_level</th>
+<th align="left">age_grp</th>
+<th align="left">sex</th>
+<th align="right">yes</th>
+<th align="right">no</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">&lt;1</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">&lt;1</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">1-4</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">1-4</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">5-9</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">5-9</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">10-14</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">10-14</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">15-19</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">2939.801</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">15-19</td>
+<td align="left">female</td>
+<td align="right">937.6669</td>
+<td align="right">1828.149</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>depr_by_impairment &lt;- 
+  bind_rows(
+    depr_by_impairment,
+    depr_by_impairment %&gt;% 
+    group_by( hearing_impairment_level, age_grp) %&gt;%
+    summarise( yes = sum(yes), no = sum(no)) %&gt;%
+    transmute( hearing_impairment_level, age_grp, sex = &#39;both&#39;, yes, no)
+  ) %&gt;% 
+  mutate(
+    N = yes + no,
     pct = ifelse( yes+no== 0, 0, yes / (yes + no))
-  ) </code></pre>
-<pre><code>## `summarise()` has grouped output by &#39;hearing_impairment_level&#39;. You can
-## override using the `.groups` argument.</code></pre>
+  ) 
+
+depr_by_impairment %&gt;%
+  head(10) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<colgroup>
+<col width="34%" />
+<col width="10%" />
+<col width="9%" />
+<col width="11%" />
+<col width="11%" />
+<col width="11%" />
+<col width="10%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">hearing_impairment_level</th>
+<th align="left">age_grp</th>
+<th align="left">sex</th>
+<th align="right">yes</th>
+<th align="right">no</th>
+<th align="right">N</th>
+<th align="right">pct</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">&lt;1</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">&lt;1</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">1-4</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">1-4</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">5-9</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">5-9</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">10-14</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">10-14</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">15-19</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">2939.801</td>
+<td align="right">2939.801</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">15-19</td>
+<td align="left">female</td>
+<td align="right">937.6669</td>
+<td align="right">1828.149</td>
+<td align="right">2765.816</td>
+<td align="right">0.33902</td>
+</tr>
+</tbody>
+</table>
 <pre class="r"><code>prevalences &lt;- 
   bind_rows(
     depr_by_impairment %&gt;%
     mutate( disease = &#39;depression&#39;)
   ) 
-
-dfle &lt;- 
+prevalences %&gt;%
+  head(10) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<colgroup>
+<col width="29%" />
+<col width="9%" />
+<col width="8%" />
+<col width="10%" />
+<col width="10%" />
+<col width="10%" />
+<col width="9%" />
+<col width="12%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">hearing_impairment_level</th>
+<th align="left">age_grp</th>
+<th align="left">sex</th>
+<th align="right">yes</th>
+<th align="right">no</th>
+<th align="right">N</th>
+<th align="right">pct</th>
+<th align="left">disease</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">&lt;1</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+<td align="left">depression</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">&lt;1</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+<td align="left">depression</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">1-4</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+<td align="left">depression</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">1-4</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+<td align="left">depression</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">5-9</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+<td align="left">depression</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">5-9</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+<td align="left">depression</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">10-14</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+<td align="left">depression</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">10-14</td>
+<td align="left">female</td>
+<td align="right">0.0000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.00000</td>
+<td align="left">depression</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">15-19</td>
+<td align="left">male</td>
+<td align="right">0.0000</td>
+<td align="right">2939.801</td>
+<td align="right">2939.801</td>
+<td align="right">0.00000</td>
+<td align="left">depression</td>
+</tr>
+<tr class="even">
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">15-19</td>
+<td align="left">female</td>
+<td align="right">937.6669</td>
+<td align="right">1828.149</td>
+<td align="right">2765.816</td>
+<td align="right">0.33902</td>
+<td align="left">depression</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>dfle &lt;- 
   prevalences %&gt;% 
   transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %&gt;%
   arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %&gt;% 
   na.omit() %&gt;% 
   left_join(br_ibge_censo_2010, by = c(&#39;age_grp&#39;,&#39;sex&#39;)) %&gt;% 
-  mutate( aux = (1-pix)*Lxn ) %&gt;% 
+  mutate( aux = (1-pix)*Lxn ) 
+
+dfle %&gt;% 
+  head(10) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<colgroup>
+<col width="7%" />
+<col width="3%" />
+<col width="17%" />
+<col width="5%" />
+<col width="6%" />
+<col width="7%" />
+<col width="6%" />
+<col width="6%" />
+<col width="2%" />
+<col width="5%" />
+<col width="4%" />
+<col width="4%" />
+<col width="4%" />
+<col width="5%" />
+<col width="4%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">disease</th>
+<th align="left">sex</th>
+<th align="left">hearing_impairment_level</th>
+<th align="left">age_grp</th>
+<th align="right">pix</th>
+<th align="right">population</th>
+<th align="right">deaths</th>
+<th align="right">Mxn</th>
+<th align="right">x</th>
+<th align="right">Qxn</th>
+<th align="right">lx</th>
+<th align="right">Dxn</th>
+<th align="right">Lxn</th>
+<th align="right">Tx</th>
+<th align="right">Ex</th>
+<th align="right">aux</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">90+</td>
+<td align="right">0.1341765</td>
+<td align="right">449129</td>
+<td align="right">89081.75</td>
+<td align="right">0.1983433</td>
+<td align="right">90</td>
+<td align="right">1.00000</td>
+<td align="right">16533</td>
+<td align="right">16533</td>
+<td align="right">83355</td>
+<td align="right">83355</td>
+<td align="right">5.04</td>
+<td align="right">72170.71</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">85-89</td>
+<td align="right">0.0385959</td>
+<td align="right">819483</td>
+<td align="right">98732.37</td>
+<td align="right">0.1204813</td>
+<td align="right">85</td>
+<td align="right">0.46296</td>
+<td align="right">30785</td>
+<td align="right">14252</td>
+<td align="right">118295</td>
+<td align="right">201650</td>
+<td align="right">6.55</td>
+<td align="right">113729.30</td>
+</tr>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">80-84</td>
+<td align="right">0.0937279</td>
+<td align="right">1666972</td>
+<td align="right">129146.37</td>
+<td align="right">0.0774736</td>
+<td align="right">80</td>
+<td align="right">0.32451</td>
+<td align="right">45575</td>
+<td align="right">14790</td>
+<td align="right">190900</td>
+<td align="right">392550</td>
+<td align="right">8.61</td>
+<td align="right">173007.35</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">75-79</td>
+<td align="right">0.0856713</td>
+<td align="right">2563447</td>
+<td align="right">128257.41</td>
+<td align="right">0.0500332</td>
+<td align="right">75</td>
+<td align="right">0.22235</td>
+<td align="right">58606</td>
+<td align="right">13031</td>
+<td align="right">260453</td>
+<td align="right">653003</td>
+<td align="right">11.14</td>
+<td align="right">238139.66</td>
+</tr>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">70-74</td>
+<td align="right">0.1760645</td>
+<td align="right">3741636</td>
+<td align="right">121447.62</td>
+<td align="right">0.0324584</td>
+<td align="right">70</td>
+<td align="right">0.15011</td>
+<td align="right">68958</td>
+<td align="right">10351</td>
+<td align="right">318910</td>
+<td align="right">971913</td>
+<td align="right">14.09</td>
+<td align="right">262761.27</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">65-69</td>
+<td align="right">0.3565803</td>
+<td align="right">4840810</td>
+<td align="right">102713.16</td>
+<td align="right">0.0212182</td>
+<td align="right">65</td>
+<td align="right">0.10075</td>
+<td align="right">76683</td>
+<td align="right">7726</td>
+<td align="right">364102</td>
+<td align="right">1336015</td>
+<td align="right">17.42</td>
+<td align="right">234270.41</td>
+</tr>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">60-64</td>
+<td align="right">0.1513840</td>
+<td align="right">6509120</td>
+<td align="right">92198.41</td>
+<td align="right">0.0141645</td>
+<td align="right">60</td>
+<td align="right">0.06840</td>
+<td align="right">82313</td>
+<td align="right">5630</td>
+<td align="right">397491</td>
+<td align="right">1733506</td>
+<td align="right">21.06</td>
+<td align="right">337317.24</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">55-59</td>
+<td align="right">0.3334347</td>
+<td align="right">8276221</td>
+<td align="right">82244.84</td>
+<td align="right">0.0099375</td>
+<td align="right">55</td>
+<td align="right">0.04848</td>
+<td align="right">86508</td>
+<td align="right">4194</td>
+<td align="right">422052</td>
+<td align="right">2155558</td>
+<td align="right">24.92</td>
+<td align="right">281325.23</td>
+</tr>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">50-54</td>
+<td align="right">0.1815547</td>
+<td align="right">10140402</td>
+<td align="right">70610.50</td>
+<td align="right">0.0069633</td>
+<td align="right">50</td>
+<td align="right">0.03422</td>
+<td align="right">89573</td>
+<td align="right">3065</td>
+<td align="right">440201</td>
+<td align="right">2595759</td>
+<td align="right">28.98</td>
+<td align="right">360280.43</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">45-49</td>
+<td align="right">0.2457540</td>
+<td align="right">11833352</td>
+<td align="right">56984.07</td>
+<td align="right">0.0048155</td>
+<td align="right">45</td>
+<td align="right">0.02379</td>
+<td align="right">91756</td>
+<td align="right">2183</td>
+<td align="right">453321</td>
+<td align="right">3049080</td>
+<td align="right">33.23</td>
+<td align="right">341915.56</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>dfle &lt;-
+  dfle %&gt;% 
   group_by(disease, sex, hearing_impairment_level) %&gt;%
   mutate( 
     dfle = cumsum(aux)/lx, 
@@ -1754,6 +2540,243 @@ dfle &lt;-
   arrange( disease, sex, hearing_impairment_level, age_grp ) 
 
 dfle %&gt;% 
+  head(10) %&gt;%
+  knitr::kable()</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="7%" />
+<col width="3%" />
+<col width="16%" />
+<col width="5%" />
+<col width="6%" />
+<col width="7%" />
+<col width="6%" />
+<col width="6%" />
+<col width="1%" />
+<col width="5%" />
+<col width="4%" />
+<col width="3%" />
+<col width="4%" />
+<col width="5%" />
+<col width="3%" />
+<col width="5%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">disease</th>
+<th align="left">sex</th>
+<th align="left">hearing_impairment_level</th>
+<th align="left">age_grp</th>
+<th align="right">pix</th>
+<th align="right">population</th>
+<th align="right">deaths</th>
+<th align="right">Mxn</th>
+<th align="right">x</th>
+<th align="right">Qxn</th>
+<th align="right">lx</th>
+<th align="right">Dxn</th>
+<th align="right">Lxn</th>
+<th align="right">Tx</th>
+<th align="right">Ex</th>
+<th align="right">dfle</th>
+<th align="right">dfle_over_Ex</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">&lt;1</td>
+<td align="right">0.0000000</td>
+<td align="right">2713244</td>
+<td align="right">46115.553</td>
+<td align="right">0.0169965</td>
+<td align="right">0</td>
+<td align="right">0.01674</td>
+<td align="right">100000</td>
+<td align="right">1674</td>
+<td align="right">98483</td>
+<td align="right">7376466</td>
+<td align="right">73.76</td>
+<td align="right">62.83875</td>
+<td align="right">0.8519353</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">1-4</td>
+<td align="right">0.0000000</td>
+<td align="right">11082914</td>
+<td align="right">7576.013</td>
+<td align="right">0.0006836</td>
+<td align="right">1</td>
+<td align="right">0.00273</td>
+<td align="right">98326</td>
+<td align="right">268</td>
+<td align="right">392652</td>
+<td align="right">7277983</td>
+<td align="right">74.02</td>
+<td align="right">62.90698</td>
+<td align="right">0.8498647</td>
+</tr>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">5-9</td>
+<td align="right">0.0000000</td>
+<td align="right">14969375</td>
+<td align="right">4493.268</td>
+<td align="right">0.0003002</td>
+<td align="right">5</td>
+<td align="right">0.00150</td>
+<td align="right">98058</td>
+<td align="right">147</td>
+<td align="right">489921</td>
+<td align="right">6885331</td>
+<td align="right">70.22</td>
+<td align="right">59.07463</td>
+<td align="right">0.8412792</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">10-14</td>
+<td align="right">0.0000000</td>
+<td align="right">17166761</td>
+<td align="right">6173.902</td>
+<td align="right">0.0003596</td>
+<td align="right">10</td>
+<td align="right">0.00180</td>
+<td align="right">97911</td>
+<td align="right">176</td>
+<td align="right">489114</td>
+<td align="right">6395410</td>
+<td align="right">65.32</td>
+<td align="right">54.15958</td>
+<td align="right">0.8291424</td>
+</tr>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">15-19</td>
+<td align="right">0.1643410</td>
+<td align="right">16990872</td>
+<td align="right">20354.614</td>
+<td align="right">0.0011980</td>
+<td align="right">15</td>
+<td align="right">0.00597</td>
+<td align="right">97735</td>
+<td align="right">584</td>
+<td align="right">487215</td>
+<td align="right">5906297</td>
+<td align="right">60.43</td>
+<td align="right">49.25262</td>
+<td align="right">0.8150359</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">20-24</td>
+<td align="right">0.0157989</td>
+<td align="right">17245192</td>
+<td align="right">29867.753</td>
+<td align="right">0.0017319</td>
+<td align="right">20</td>
+<td align="right">0.00862</td>
+<td align="right">97151</td>
+<td align="right">838</td>
+<td align="right">483661</td>
+<td align="right">5419082</td>
+<td align="right">55.78</td>
+<td align="right">45.35784</td>
+<td align="right">0.8131559</td>
+</tr>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">25-29</td>
+<td align="right">0.1908547</td>
+<td align="right">17104414</td>
+<td align="right">30904.093</td>
+<td align="right">0.0018068</td>
+<td align="right">25</td>
+<td align="right">0.00899</td>
+<td align="right">96313</td>
+<td align="right">866</td>
+<td align="right">479402</td>
+<td align="right">4935421</td>
+<td align="right">51.24</td>
+<td align="right">40.81006</td>
+<td align="right">0.7964493</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">30-34</td>
+<td align="right">0.2257077</td>
+<td align="right">15744512</td>
+<td align="right">32175.280</td>
+<td align="right">0.0020436</td>
+<td align="right">30</td>
+<td align="right">0.01017</td>
+<td align="right">95447</td>
+<td align="right">970</td>
+<td align="right">474810</td>
+<td align="right">4456019</td>
+<td align="right">46.69</td>
+<td align="right">37.11624</td>
+<td align="right">0.7949505</td>
+</tr>
+<tr class="odd">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">35-39</td>
+<td align="right">0.0518501</td>
+<td align="right">13888579</td>
+<td align="right">34541.476</td>
+<td align="right">0.0024870</td>
+<td align="right">35</td>
+<td align="right">0.01236</td>
+<td align="right">94477</td>
+<td align="right">1168</td>
+<td align="right">469466</td>
+<td align="right">3981209</td>
+<td align="right">42.14</td>
+<td align="right">33.60598</td>
+<td align="right">0.7974841</td>
+</tr>
+<tr class="even">
+<td align="left">depression</td>
+<td align="left">both</td>
+<td align="left">Heavily or Fully impaired</td>
+<td align="left">40-44</td>
+<td align="right">0.3192654</td>
+<td align="right">13009364</td>
+<td align="right">43684.177</td>
+<td align="right">0.0033579</td>
+<td align="right">40</td>
+<td align="right">0.01665</td>
+<td align="right">93309</td>
+<td align="right">1554</td>
+<td align="right">462663</td>
+<td align="right">3511743</td>
+<td align="right">37.64</td>
+<td align="right">29.25621</td>
+<td align="right">0.7772639</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>dfle %&gt;% 
   filter(
     disease == &#39;depression&#39;,
     age_grp %in% c(&#39;&lt;1&#39;, &#39;20-24&#39;, &#39;40-44&#39;,&#39;60-64&#39;,&#39;80-84&#39;)

@@ -1716,10 +1716,9 @@ depr_by_impairment &lt;- dfle_pns %&gt;%
   summarise( n = sum( Freq ) ) %&gt;%
   filter( diagnosed_depression != &#39; &#39;) %&gt;%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %&gt;% 
-  rename( yes = `1`, no = `2`) </code></pre>
-<pre><code>## `summarise()` has grouped output by &#39;hearing_impairment_level&#39;, &#39;age_grp&#39;,
-## &#39;sex&#39;. You can override using the `.groups` argument.</code></pre>
-<pre class="r"><code>depr_by_impairment &lt;- bind_rows(
+  rename( yes = `1`, no = `2`) 
+
+depr_by_impairment &lt;- bind_rows(
   depr_by_impairment,
   depr_by_impairment %&gt;% 
   group_by( hearing_impairment_level, age_grp) %&gt;%
@@ -1727,10 +1726,9 @@ depr_by_impairment &lt;- dfle_pns %&gt;%
   transmute( hearing_impairment_level, age_grp, sex = &#39;both&#39;, yes, no)
 ) %&gt;% mutate(
     pct = ifelse( yes+no== 0, 0, yes / (yes + no))
-  ) </code></pre>
-<pre><code>## `summarise()` has grouped output by &#39;hearing_impairment_level&#39;. You can
-## override using the `.groups` argument.</code></pre>
-<pre class="r"><code>prevalences &lt;- bind_rows(
+  ) 
+
+prevalences &lt;- bind_rows(
   depr_by_impairment %&gt;%
   mutate( disease = &#39;depression&#39;)
   ) 
