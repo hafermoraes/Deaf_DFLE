@@ -13,13 +13,13 @@ and change directory into its local copy.
 cd Deaf_DFLE
 #+end_src
 
+To fully reproduce the environment used for the paper, it is recommended to use =docker= -- visit https://github.com/docker/docker-install (last accessed on November, 11th 2024) and follow the instructions -- and =docker buildx= -- visit https://github.com/docker/buildx?tab=readme-ov-file#linux-packages (last accessed on November, 11th 2024) and follow the instructions.
+
 ** Option A: Building upon data already in the repository
 
 The repository already ships with the data preprocessed and ready for analyses and reproduction of tables and figures in the paper.
 
-To fully reproduce the environment used for the paper, it is recommended to use to docker.
-
-The following code snippet will mount the =analyses/= and =data/= folders into a =rocker/tidyverse:4.4.1= RStudio Docker container.
+The following code snippet will mount the =analyses/= and =data/= folders as well as the =.Rprofile= file into a =rocker/tidyverse:4.4.1= RStudio Docker container.
 
 #+begin_src sh
 docker run -it --rm \
