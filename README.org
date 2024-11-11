@@ -68,7 +68,7 @@ and the execute the following command to build the RStudio Docker container prep
 make build
 #+end_src
 
-Open the web browser and access https://localhost:8787/ for 
+Open the web browser and access =http://localhost:8787/=.
 
 ** Option C: Use your own GNU R and RStudio versions
 
