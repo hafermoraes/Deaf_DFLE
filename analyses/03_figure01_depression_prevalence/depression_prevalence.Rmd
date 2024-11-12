@@ -27,7 +27,6 @@ library(readr)     # read_delim
 library(tidyr)     # pivot_wider
 library(dplyr)     # %>%, filter, select, 
 library(ggplot2)   # geom_point, ggplot
-library(ggstats)   # geom_stripped_cols
 ```
 
 # Importing the baseline dataset
@@ -79,7 +78,8 @@ dfle_pns <-
 )
 
 # ever diagnosed with depression by a physician (g058)
-depr_by_impairment <- dfle_pns %>%
+depr_by_impairment <- 
+  dfle_pns %>%
   na.omit() %>%
   group_by( hearing_impairment_level, age_grp, sex, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>%
@@ -87,17 +87,22 @@ depr_by_impairment <- dfle_pns %>%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %>% 
   rename( yes = `1`, no = `2`) 
 
-depr_by_impairment <- bind_rows(
-  depr_by_impairment,
-  depr_by_impairment %>% 
-  group_by( hearing_impairment_level, age_grp) %>%
-  summarise( yes = sum(yes), no = sum(no)) %>%
-  transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
-) %>% mutate(
-    pct = ifelse( yes+no== 0, 0, yes / (yes + no))
+depr_by_impairment <- 
+  bind_rows(
+    depr_by_impairment,
+    depr_by_impairment %>% 
+    group_by( hearing_impairment_level, age_grp) %>%
+    summarise( yes = sum(yes), no = sum(no)) %>%
+    transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
+  ) %>% 
+  mutate(
+    N = (yes + no),
+    pct = ifelse( yes+no== 0, NA, yes / N),
+    var_pct = ifelse(N==0, NA, ( pct * (1-pct) )/(N))
   ) 
 
-fig1 <- depr_by_impairment %>%
+fig1 <-
+  depr_by_impairment %>%
   filter(!age_grp %in% c('<1','1-4','5-9','10-14')) %>%
   ggplot(
     aes(
@@ -107,14 +112,14 @@ fig1 <- depr_by_impairment %>%
       colour = hearing_impairment_level
     )
   ) +
-  geom_line(
-    aes(group = age_grp),
-    size = 1,
-    color = "grey26",
-    alpha = 1
-    ) +
-  geom_point(size = 4.3, alpha = .8) +
-  geom_stripped_cols(color = "white") +
+  geom_errorbar(
+    aes(
+      ymin = pct - 1.96 * sqrt(var_pct), 
+      ymax = pct + 1.96 * sqrt(var_pct)
+    ),
+    width = 0.5 
+  ) +
+  geom_point(size = 1.5, alpha = .8) +
   labs(
     y = 'People diagnosed with depression by a physician'
     ,x = 'Age groups'
@@ -131,28 +136,17 @@ fig1 <- depr_by_impairment %>%
   scale_color_brewer(palette = "Dark2") +
   scale_y_continuous(
     labels = scales::percent_format(scale = 100)
-    )
+  )
 
-ggsave(
-  filename = 'fig01.png',
-  plot = fig1,
-  width = 7,
-  height = 5
-)
 
-ggsave(
-  filename = 'fig01.pdf',
-  plot = fig1,
-  width = 7,
-  height = 5
-)
-
-ggsave(
-  filename = 'fig01.svg',
-  plot = fig1,
-  width = 7,
-  height = 5
-)
+for( ext in c('png','pdf','svg')){
+  ggsave(
+    filename = paste0('fig01.',ext),
+    plot = fig1,
+    width = 7,
+    height = 5
+  )  
+}
 
 fig1
 ```

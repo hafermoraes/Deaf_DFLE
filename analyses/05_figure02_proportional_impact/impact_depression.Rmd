@@ -26,7 +26,7 @@ paper.
 library(readr)     # read_delim
 library(tidyr)     # pivot_wider
 library(dplyr)     # %>%, filter, select, 
-library(ggplot2)
+library(ggplot2)   # ggplot
 ```
 
 # Importing the processed datasets
@@ -66,7 +66,8 @@ AGE_LABELS <- c('<1','1-4','5-9','10-14','15-19','20-24','25-29','30-34'
                 ,'35-39','40-44','45-49','50-54','55-59','60-64','65-69'
                 ,'70-74','75-79','80-84','85-89','90+')
 
-dfle_pns <- dfle_raw %>% 
+dfle_pns <- 
+  dfle_raw %>% 
   as.data.frame(stringsAsFactors = FALSE) %>%
   mutate(
     c008 = as.numeric(c008),
@@ -100,7 +101,8 @@ dfle_pns <- dfle_raw %>%
   ) 
 
 # ever diagnosed with depression by a physician (g058)
-depr_by_impairment <- dfle_pns %>%
+depr_by_impairment <- 
+  dfle_pns %>%
   na.omit() %>%
   group_by( hearing_impairment_level, age_grp, sex, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>%
@@ -108,14 +110,18 @@ depr_by_impairment <- dfle_pns %>%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n) %>% 
   rename( yes = `1`, no = `2`) 
 
-depr_by_impairment <- bind_rows(
-  depr_by_impairment,
-  depr_by_impairment %>% 
-  group_by( hearing_impairment_level, age_grp) %>%
-  summarise( yes = sum(yes), no = sum(no)) %>%
-  transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
-) %>% mutate(
-    pct = ifelse( yes+no== 0, 0, yes / (yes + no))
+depr_by_impairment <- 
+  bind_rows(
+    depr_by_impairment,
+    depr_by_impairment %>% 
+    group_by( hearing_impairment_level, age_grp) %>%
+    summarise( yes = sum(yes), no = sum(no)) %>%
+    transmute( hearing_impairment_level, age_grp, sex = 'both', yes, no)
+  ) %>% 
+  mutate(
+    N = yes + no,
+    pct = ifelse( N == 0, NA, yes / (N)),
+    var_pct = ifelse( N == 0, NA, (pct * (1-pct))/N)
   ) 
 
 prevalences <- bind_rows(
@@ -123,23 +129,73 @@ prevalences <- bind_rows(
   mutate( disease = 'depression')
   ) 
 
-dfle <- prevalences %>% 
-  transmute(disease, sex, hearing_impairment_level, age_grp, pix = pct) %>%
+dfle <- 
+  prevalences %>% 
+  transmute(
+    disease, 
+    sex, 
+    hearing_impairment_level, 
+    age_grp, 
+    pix = pct, # prevalence of depression by sex, age group and impairment level
+    Nx = yes + no # Number in survey in Interval
+  ) %>% 
   arrange( disease, sex,hearing_impairment_level, desc(age_grp) ) %>% 
-  na.omit() %>%
+  na.omit() %>% 
   left_join(br_ibge_censo_2010, by = c('age_grp','sex')) %>% 
-  mutate( aux = (1-pix)*Lxn ) %>% 
-  group_by(disease, sex, hearing_impairment_level) %>%
-  mutate( 
-    dfle = cumsum(aux)/lx, 
-    age_grp = factor( age_grp, levels = AGE_LABELS),
-    dfle_over_Ex = dfle / Ex
-    ) %>% 
-  select( -aux ) %>% 
+  mutate(
+    aux = (1-pix)*Lxn 
+  ) 
+
+table03 <-
+  dfle %>% 
+  group_by(disease, sex, hearing_impairment_level) %>% 
+  transmute( 
+    # age group
+    # $[x,x+n)$  [1a]
+    age_grp = factor( age_grp, levels = AGE_LABELS), 
+    # Numbers surviving to age x
+    # $l_x$ [6]
+    lx, 
+    # Person years lived in age interval
+    # ${}_n L_x$ [7]
+    Lxn, 
+    # Total life expectancy
+    # $e_x$ [9]
+    ex = Ex, 
+    # Proportion of age group with depression
+    # $\pi_x$ [10]
+    pix, 
+    # Person years lived without depression from age x
+    # $(1-\pi_x)\cdot {}_n L_x$ [11]
+    py_wo_depression = (1-pix)*Lxn, 
+    # Total years lived without depression from age x
+    # $\sum_{x}^{\omega}(1-\pi_x)\cdot{}_n L_x$ [12]
+    cumsum_py_wo_depression = cumsum(py_wo_depression),  
+    # Depression free life expectancy
+    dfle = cumsum(aux)/lx, # ${DFLE}_x$ [13]
+    # Number in survey in age interval
+    Nx, # $N_x$ [15]
+    # Variance of proportion with depression
+    S2pix = ifelse( Nx == 0, 0, pix * (1-pix) / Nx), # $S^2(\pi_x)$ [16]
+    # 
+    L2S2pix = Lxn * Lxn * S2pix, # $L^2\cdot S^2(\pi_x)$ [17]
+    # 
+    cumsum_L2S2pix = cumsum(L2S2pix), # $\sum_{x}^{\omega} L^2\cdot S^2(\pi_x)$ [18]
+    # Variance of DFLEx
+    var_dfle = cumsum_L2S2pix / (lx * lx), # $S^2(DFLE_x)$ [19]
+    # Standard error of DFLEx
+    se_dfle = var_dfle^(1/2), # $\sqrt{S^2(DFLE_x)}$ [19] 
+    # Proportion of remaining life spent depression-free
+    dfle_over_Ex = dfle / ex, # $\% \frac{{DFLE}_x}{e_x}$
+    # Confidence interval for DFLEx
+    dfle_inf = round( dfle - 1.96 * se_dfle, 6), # ${DFLE}_x - 1.96\cdot se({DFLE}_x)$
+    dfle_sup = round( dfle + 1.96 * se_dfle, 6) # ${DFLE}_x + 1.96\cdot se({DFLE}_x)$
+  ) %>%
   arrange( disease, sex, hearing_impairment_level, age_grp ) 
 
 
-fig2 <- dfle %>% 
+fig2 <-
+  table03 %>% 
   filter(disease == 'depression') %>%
   filter(!age_grp %in% c('<1','1-4','5-9','10-14','85-89','90+')) %>% 
   mutate(
@@ -147,7 +203,9 @@ fig2 <- dfle %>%
     age_grp = case_when(
       age_grp == '80-84' ~ '80+',
       TRUE ~ as.character(age_grp)
-    ) 
+    ),
+    dfle_inf_over_Ex = dfle_inf / ex,
+    dfle_sup_over_Ex = dfle_sup / ex,
   ) %>% 
   ggplot(
     aes(
@@ -160,11 +218,18 @@ fig2 <- dfle %>%
   geom_ribbon(
     aes(
       ymin = dfle_over_Ex, 
-      ymax = 1, 
-      fill = "Gap"
+      ymax = 1,
+      fill = "darkblue"
       ),
-    alpha = .4, 
-    color = "white"
+    alpha = .4
+  ) +
+  geom_ribbon(
+    aes(
+      ymin = dfle_inf_over_Ex, 
+      ymax = dfle_sup_over_Ex,
+      fill = "darkred"
+      ),
+    alpha = .4
   ) +
   geom_hline(yintercept = 1, linetype = "dotted", color = "black") +
   geom_point(size = .8, shape = 4, stroke = 1.5) +
@@ -182,34 +247,24 @@ fig2 <- dfle %>%
   facet_grid(hearing_impairment_level ~ sex) +
   scale_fill_manual(
     name = "", 
-    values = "darkblue",
-    labels = expression("Proportional impact of depression on e"[x])
+    values = c("darkblue","darkred"),
+    labels = c(expression("Proportional impact of depression on e"[x]),
+               expression("95% Confidence Interval for DFLE / e"[x]))
   ) +
   scale_y_continuous(
     limits = c(0.7, 1),
     labels = scales::percent_format(scale = 100)
   )
 
-ggsave(
-  filename = 'fig02.png',
-  plot = fig2,
-  width = 10,
-  height = 8
-)
 
-ggsave(
-  filename = 'fig02.pdf',
-  plot = fig2,
-  width = 10,
-  height = 8
-)
-
-ggsave(
-  filename = 'fig02.svg',
-  plot = fig2,
-  width = 10,
-  height = 8
-)
+for( ext in c('png','pdf','svg')) {
+  ggsave(
+    filename = paste0('fig02.',ext),
+    plot = fig2,
+    width = 10,
+    height = 8
+  )
+}
 
 fig2
 ```

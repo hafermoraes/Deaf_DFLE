@@ -26,8 +26,7 @@ paper.
 library(readr)     # read_delim
 library(tidyr)     # pivot_wider
 library(dplyr)     # %>%, filter, select, 
-library(ggplot2)
-library(ggstats)
+library(ggplot2)   # ggplot, geom_pointrange, geom_point
 ```
 
 # Importing the processed datasets
@@ -103,23 +102,31 @@ dfle_pns <-
 
 # Depression (diagnosed by a physician)
 # Comparison between users and not users of Libras
-depr_compr <- dfle_pns %>% 
+depr_compr <- 
+  dfle_pns %>% 
   group_by( age_grp, sex, libras, diagnosed_depression) %>%
   summarise( n = sum( Freq ) ) %>% 
   filter( diagnosed_depression != ' ') %>%
   pivot_wider( id_cols = c(1,2,3), names_from = 4, values_from = n ) %>% 
   rename( yes = `1`, no = `2`)
                  
-depr_compr <- bind_rows(
-  depr_compr,
-  depr_compr %>%
-    group_by( age_grp, libras) %>%
-    summarise( yes = sum(yes), no = sum(no)) %>%
-    transmute( age_grp, sex = 'both', libras, yes, no)
-) %>%               
-  mutate( pct = ifelse( yes + no == 0, 0, yes / (yes + no)) )
+depr_compr <- 
+  bind_rows(
+    depr_compr,
+    depr_compr %>%
+      group_by( age_grp, libras) %>%
+      summarise( yes = sum(yes), no = sum(no)) %>%
+      transmute( age_grp, sex = 'both', libras, yes, no)
+  ) %>%               
+  mutate(
+    N = (yes + no),
+    pct = ifelse( yes+no== 0, NA, yes / N),
+    var_pct = ifelse(N==0, NA, ( pct * (1-pct) )/(N))
+  ) 
 
-fig4 <- depr_compr %>%
+
+fig4 <- 
+  depr_compr %>%
   filter(!age_grp %in% c('<1','1-4','5-9','10-14','85-89','90+')) %>% 
   mutate(
     age_grp = as.character(age_grp),
@@ -136,15 +143,15 @@ fig4 <- depr_compr %>%
       group = libras,
       colour = libras
     )
-  )+
-  geom_line(
-    aes(group = age_grp),
-    size = 1,
-    color = "grey26",
-    alpha = 1
   ) +
-  geom_point(size = 4, alpha = .8) +
-  geom_stripped_cols(color = "white") +
+  geom_errorbar(
+    aes(
+      ymin = pct - 1.96 * sqrt(var_pct), 
+      ymax = pct + 1.96 * sqrt(var_pct)
+    ),
+    width = 0.5 
+  ) +
+  geom_point(size = 1.5, alpha = .8) +
   labs(
     y = 'People diagnosed with depression by a physician'
     ,x = 'Age groups'
@@ -162,27 +169,14 @@ fig4 <- depr_compr %>%
   facet_wrap(~sex) +
   coord_flip()
 
-ggsave(
-  filename = 'fig04.png',
-  plot = fig4,
-  width = 7,
-  height = 5
-)
-
-ggsave(
-  filename = 'fig04.pdf',
-  plot = fig4,
-  width = 7,
-  height = 5
-)
-
-ggsave(
-  filename = 'fig04.svg',
-  plot = fig4,
-  width = 7,
-  height = 5
-)
-
+for( ext in c('png','pdf','svg')){
+  ggsave(
+    filename = paste0('fig04.',ext),
+    plot = fig4,
+    width = 7,
+    height = 5
+  )  
+}
 
 fig4
 ```
