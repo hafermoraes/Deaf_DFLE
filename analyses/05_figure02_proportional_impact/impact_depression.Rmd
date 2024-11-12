@@ -186,10 +186,7 @@ table03 <-
     # Standard error of DFLEx
     se_dfle = var_dfle^(1/2), # $\sqrt{S^2(DFLE_x)}$ [19] 
     # Proportion of remaining life spent depression-free
-    dfle_over_Ex = dfle / ex, # $\% \frac{{DFLE}_x}{e_x}$
-    # Confidence interval for DFLEx
-    dfle_inf = round( dfle - 1.96 * se_dfle, 6), # ${DFLE}_x - 1.96\cdot se({DFLE}_x)$
-    dfle_sup = round( dfle + 1.96 * se_dfle, 6) # ${DFLE}_x + 1.96\cdot se({DFLE}_x)$
+    dfle_over_Ex = dfle / ex # $\% \frac{{DFLE}_x}{e_x}$
   ) %>%
   arrange( disease, sex, hearing_impairment_level, age_grp ) 
 
@@ -204,8 +201,10 @@ fig2 <-
       age_grp == '80-84' ~ '80+',
       TRUE ~ as.character(age_grp)
     ),
-    dfle_inf_over_Ex = dfle_inf / ex,
-    dfle_sup_over_Ex = dfle_sup / ex,
+    # Confidence interval for DFLEx
+    se_dfle_over_Ex = se_dfle / ex, 
+    dfle_inf_over_Ex = round( dfle_over_Ex - 1.96 * se_dfle_over_Ex, 6),
+    dfle_sup_over_Ex = round( dfle_over_Ex + 1.96 * se_dfle_over_Ex, 6) 
   ) %>% 
   ggplot(
     aes(
